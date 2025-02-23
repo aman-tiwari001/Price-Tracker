@@ -22,5 +22,5 @@ connectDB();
 app.use('/api/auth', authRoutes);
 
 app.listen(Number(CONSTANTS.PORT), '0.0.0.0', () => {
-	console.log(`Server running on port ${CONSTANTS.PORT}`);
+  console.log(`Server running on port ${CONSTANTS.PORT}`);
 });

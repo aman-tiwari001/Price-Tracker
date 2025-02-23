@@ -1,0 +1,34 @@
+# Ignore artifacts:
+
+# Build and dependencies
+/node_modules
+/dist
+/build
+/.next
+/.turbo
+
+# Env and lock files
+.env
+.env.*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Static assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+
+# Compiled or generated files
+*.min.js
+*.map
+*.d.ts
+coverage/
+
+# Data exports and logs
+*.sql
+*.csv
+*.log
