@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt, { JwtPayload } from 'jsonwebtoken';
 import CONSTANTS from '../config/constant';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { Request, Response, NextFunction } from 'express';
 import { responseHandler } from '../utils/responseHandler';
 
 interface AuthRequest extends Request {

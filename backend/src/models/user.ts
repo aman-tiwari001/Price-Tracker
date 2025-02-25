@@ -1,19 +1,22 @@
 import { Schema, model } from 'mongoose';
-import { IAddress, IUser } from '../types/schema';
 import CONSTANTS from '../config/constant';
+import { IAddress, IUser } from '../types/schema';
 
-const addressSchema = new Schema<IAddress>({
-  houseNo: String,
-  street: String,
-  city: String,
-  state: String,
-  zipcode: String,
-  country: String,
-  location: {
-    lat: Number,
-    lng: Number,
+const addressSchema = new Schema<IAddress>(
+  {
+    houseNo: String,
+    street: String,
+    city: String,
+    state: String,
+    zipcode: String,
+    country: String,
+    location: {
+      lat: Number,
+      lng: Number,
+    },
   },
-});
+  { _id: false },
+);
 
 const userSchema = new Schema<IUser>(
   {
@@ -60,8 +63,6 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true },
 );
-
-userSchema.index({ 'address.location': '2dsphere' });
 
 const User = model<IUser>('User', userSchema);
 export default User;

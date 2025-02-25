@@ -1,5 +1,5 @@
-import { Schema, model } from 'mongoose';
 import { IRole } from '../types/schema';
+import { Schema, model } from 'mongoose';
 import CONSTANTS from '../config/constant';
 
 const roleSchema = new Schema<IRole>({
