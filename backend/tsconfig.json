@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "CommonJS",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -12,6 +12,6 @@
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "types": []
   },
-  "include": ["src/**/*.ts", ".eslintrc.js", ".prettierrc.js"],
+  "include": ["src/**/*.ts", ".eslintrc.js", ".prettierrc.js", "src/adapters/test.ts"],
   "exclude": ["node_modules"]
 }

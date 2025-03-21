@@ -35,3 +35,8 @@ export interface IUser extends Document {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface ILocation {
+  lat: string;
+  lng: string;
+}

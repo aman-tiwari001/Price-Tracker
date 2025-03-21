@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon src/index.ts",
+    "start": "node -r dotenv/config dist/index.js",
+    "dev": "kill-port 5000 && nodemon src/index.ts",
     "lint": "eslint . --fix",
     "format": "prettier . --write"
   },
@@ -15,15 +15,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node-fetch": "^2.6.12",
+    "axios": "^1.8.3",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "kill-port": "^2.0.1",
     "mongoose": "^8.10.1",
     "morgan": "^1.10.0",
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.7.0",
     "nodemon": "^3.1.9",
+    "ts-node-dev": "^2.0.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
