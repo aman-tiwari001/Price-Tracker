@@ -7,6 +7,8 @@ import appRoutes from './routes/app.routes';
 import connectDB from './config/database';
 import CONSTANTS from './config/constant';
 import { responseHandler } from './utils/responseHandler';
+import { fetchFromSwiggyInstamart } from './adapters/swiggy';
+import { extractSwiggyProducts } from './services/swiggyExtractor';
 
 dotenv.config();
 
@@ -26,6 +28,7 @@ app.get('/api', (_, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/app', appRoutes);
+
 app.use((_, res) => {
   return responseHandler(res, 404, false, 'Route not found');
 });

@@ -7,6 +7,8 @@ import { extractBlinkitProducts } from '../services/blinkitExtractor';
 import { extractZeptoProducts } from '../services/zeptoExtractor';
 import { isValidLatLng } from '../utils/lat_lngValidator';
 import { responseHandler } from '../utils/responseHandler';
+import { fetchFromSwiggyInstamart } from '../adapters/swiggy';
+import { extractSwiggyProducts } from '../services/swiggyExtractor';
 
 export const searchProduct = async (req: Request, res: Response) => {
   try {
@@ -26,21 +28,25 @@ export const searchProduct = async (req: Request, res: Response) => {
     const blinkitJsonPromise = fetchFromBlinkit(queryString, location);
     const zeptoJsonPromise = fetchFromZepto(queryString, location);
     const bbnowJsonPromise = fetchFromBBNow(queryString, location);
+    const swiggyInstamartPromise = fetchFromSwiggyInstamart(queryString, location);
 
-    const [blinkitJsonRes, zeptoJsonRes, bbnowJsonRes] = await Promise.all([
+    const [blinkitJsonRes, zeptoJsonRes, bbnowJsonRes, swiggyInstamartRes] = await Promise.all([
       blinkitJsonPromise,
       zeptoJsonPromise,
       bbnowJsonPromise,
+      swiggyInstamartPromise
     ]);
 
     const blinkitProductList = extractBlinkitProducts(blinkitJsonRes);
     const zeptoProductList = extractZeptoProducts(zeptoJsonRes);
     const bbnowProductList = extractBBNowProducts(bbnowJsonRes);
+    const swiggyInstamartProductList = extractSwiggyProducts(swiggyInstamartRes);
 
     return responseHandler(res, 200, true, 'Products fetched successfully', {
       blinkitProductList,
       zeptoProductList,
       bbnowProductList,
+      swiggyInstamartProductList
     });
   } catch (error: any) {
     console.error('Error fetching from all three:', error);
