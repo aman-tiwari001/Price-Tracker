@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import CONSTANTS from '../../config/constant';
 
-type Platform = (typeof CONSTANTS.PLATFORMS)[number];
+type PlatformType = (typeof CONSTANTS.PLATFORMS)[keyof typeof CONSTANTS.PLATFORMS];
 
 export interface IAddress {
   houseNo: string;
@@ -31,7 +31,7 @@ export interface IUser extends Document {
   password: string;
   phoneNo: string;
   address: IAddress;
-  platformPrefernce: Platform[];
+  platformPrefernce: PlatformType[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -39,4 +39,21 @@ export interface IUser extends Document {
 export interface ILocation {
   lat: string;
   lng: string;
+}
+
+export interface IProduct {
+  name: string;
+  description?: string;
+  images: string[];
+  prices: unknown;
+  eta?: string;
+  quantity: string;
+  multipleQuantityOptions?: number[];
+  stockAvailability: boolean;
+  discount?: number;
+  brand?: string;
+  category?: string;
+  ratings?: { average: number; total: number };
+  reviews?: unknown;
+  platform: PlatformType;
 }

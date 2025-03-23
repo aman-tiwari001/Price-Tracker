@@ -1,20 +1,8 @@
-export type Product = {
-  name: string;
-  description?: string;
-  images: string[];
-  prices: { sellingPrice: number; mrp?: number; discountPrice?: number };
-  eta?: string;
-  quantity: string;
-  multipleQuantityOptions?: number[];
-  stockAvailability: boolean;
-  discount?: number;
-  brand?: string;
-  category?: string;
-  ratings?: { average: number; total: number };
-};
+import CONSTANTS from "../config/constant";
+import { IProduct } from "../types/schema";
 
-export const extractBlinkitProducts = (jsonData: any): Product[] => {
-  let products: Product[] = [];
+export const extractBlinkitProducts = (jsonData: any): IProduct[] => {
+  let products: IProduct[] = [];
 
   if (jsonData?.objects) {
     jsonData.objects.forEach((obj: any) => {
@@ -39,6 +27,7 @@ export const extractBlinkitProducts = (jsonData: any): Product[] => {
             average: parseFloat(productData.rating_text_color || '0'),
             total: parseInt(productData.rating_count_text || '0'),
           } : undefined,
+          platform: CONSTANTS.PLATFORMS.blinkit,
         });
       }
     });

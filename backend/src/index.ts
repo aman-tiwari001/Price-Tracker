@@ -7,8 +7,6 @@ import appRoutes from './routes/app.routes';
 import connectDB from './config/database';
 import CONSTANTS from './config/constant';
 import { responseHandler } from './utils/responseHandler';
-import { fetchFromSwiggyInstamart } from './adapters/swiggy';
-import { extractSwiggyProducts } from './services/swiggyExtractor';
 
 dotenv.config();
 

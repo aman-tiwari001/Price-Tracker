@@ -1,23 +1,7 @@
-type Product = {
-  name: string;
-  description?: string;
-  images: string[];
-  prices: {
-    mrp?: number;
-    store_price?: number;
-    offer_price?: number;
-    discount?: string;
-  };
-  eta?: string;
-  quantity: string;
-  multiple_quantity_options?: string;
-  stock_available: boolean;
-  brand?: string;
-  category?: string;
-  sub_category?: string;
-};
+import CONSTANTS from "../config/constant";
+import { IProduct } from "../types/schema";
 
-export const extractSwiggyProducts = (jsonData: any): Product[] => {
+export const extractSwiggyProducts = (jsonData: any): IProduct[] => {
   if (!jsonData?.data?.widgets) return [];
   
   return jsonData.data.widgets.flatMap((widget: any) => {
@@ -42,6 +26,7 @@ export const extractSwiggyProducts = (jsonData: any): Product[] => {
         brand: variation.brand || product.brand || "Unknown",
         category: variation.category || product.category || "Unknown",
         sub_category: variation.sub_category || "Unknown",
+        platform: CONSTANTS.PLATFORMS.swiggyInstamart,
       }));
     });
   });

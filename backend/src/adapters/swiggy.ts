@@ -1,12 +1,11 @@
 import puppeteer from 'puppeteer';
 import { ILocation } from '../types/schema';
 import { generateSignedCoordinate } from '../utils/lat_lngValidator';
+import CONSTANTS from '../config/constant';
 
 export const fetchFromSwiggyInstamart = async (query: String, location: ILocation) => {
   try {
     const locationCookie = `lat=${generateSignedCoordinate(parseFloat(location.lat), 'swiggy')}; lng=${generateSignedCoordinate(parseFloat(location.lng), 'swiggy')}; userLocation=${encodeURIComponent(JSON.stringify(location))};`;
-    console.log('Location cookie:', locationCookie);
-    console.log('Query:', query);
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -15,7 +14,7 @@ export const fetchFromSwiggyInstamart = async (query: String, location: ILocatio
     );
 
     // Visit Swiggy Instamart search page
-    await page.goto(`https://www.swiggy.com/instamart/search?query=${query}`, {
+    await page.goto(`${CONSTANTS.SWIGGY_INSTAMART_WEB_URL}?query=${query}`, {
       waitUntil: 'networkidle2',
     });
 
@@ -41,8 +40,8 @@ export const fetchFromSwiggyInstamart = async (query: String, location: ILocatio
               'x-build-version': '2.260.0',
               Referer: `https://www.swiggy.com/instamart/search?custom_back=true&query=${query}`,
               'Referrer-Policy': 'strict-origin-when-cross-origin',
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+              // 'User-Agent':
+              //   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
               cookie: locationCookie,
             },
             body: JSON.stringify({ facets: {}, sortAttribute: '' }),
@@ -53,8 +52,6 @@ export const fetchFromSwiggyInstamart = async (query: String, location: ILocatio
       query,
       locationCookie,
     );
-
-    console.log(JSON.stringify(result, null, 2));
 
     await browser.close();
     return result;

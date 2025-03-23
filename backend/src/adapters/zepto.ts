@@ -1,9 +1,10 @@
+import CONSTANTS from '../config/constant';
 import { ILocation } from '../types/schema';
 
 export const fetchFromZepto = async (query: string, location: ILocation) => {
   try {
     const response1 = await fetch(
-      `https://api.zeptonow.com/api/v2/get_page?latitude=${location.lat}&longitude=${location.lng}&page_type=HOME&version=v2`,
+      `${CONSTANTS.ZEPTO_API_URL1}?latitude=${location.lat}&longitude=${location.lng}&page_type=HOME&version=v2`,
       {
         method: 'GET',
         headers: {
@@ -12,10 +13,10 @@ export const fetchFromZepto = async (query: string, location: ILocation) => {
         },
       },
     );
-    
+
     const storeId = (await response1.json()).storeServiceableResponse.storeId;
 
-    const response2 = await fetch('https://api.zeptonow.com/api/v3/search', {
+    const response2 = await fetch(`${CONSTANTS.ZEPTO_API_URL2}`, {
       method: 'POST',
       headers: {
         appversion: '12.56.2',

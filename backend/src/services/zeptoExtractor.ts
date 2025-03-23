@@ -1,7 +1,8 @@
-import { Product } from "./blinkitExtractor";
+import CONSTANTS from '../config/constant';
+import { IProduct } from '../types/schema';
 
-export const extractZeptoProducts = (jsonData: any): Product[] => {
-  let products: Product[] = [];
+export const extractZeptoProducts = (jsonData: any): IProduct[] => {
+  let products: IProduct[] = [];
 
   if (jsonData?.layout) {
     jsonData.layout.forEach((widget: any) => {
@@ -22,10 +23,13 @@ export const extractZeptoProducts = (jsonData: any): Product[] => {
             discount: productData.discountPercent || undefined,
             brand: productData.product.brand || undefined,
             category: productData.primaryCategoryName || undefined,
-            ratings: productData.productVariant.ratingSummary ? {
-              average: productData.productVariant.ratingSummary.averageRating,
-              total: productData.productVariant.ratingSummary.totalRatings,
-            } : undefined,
+            ratings: productData.productVariant.ratingSummary
+              ? {
+                  average: productData.productVariant.ratingSummary.averageRating,
+                  total: productData.productVariant.ratingSummary.totalRatings,
+                }
+              : undefined,
+            platform: CONSTANTS.PLATFORMS.zepto,
           });
         });
       }

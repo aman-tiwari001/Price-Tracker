@@ -1,10 +1,11 @@
+import CONSTANTS from '../config/constant';
 import { ILocation } from '../types/schema';
 
 export const fetchFromBBNow = async (query: string, location: ILocation) => {
   try {
     const userLocation = btoa(`${location.lat}|${location.lng}`);
     const response = await fetch(
-      `https://www.bigbasket.com/listing-svc/v2/products?type=ps&slug=${query}&page=1`,
+      `${CONSTANTS.BB_NOW_API_URL}?type=ps&slug=${query}&page=1`,
       {
         method: 'GET',
         headers: {
