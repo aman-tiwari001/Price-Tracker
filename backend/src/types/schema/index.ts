@@ -55,5 +55,11 @@ export interface IProduct {
   category?: string;
   ratings?: { average: number; total: number };
   reviews?: unknown;
+  productLink?: string;
   platform: PlatformType;
 }
+
+export type ProductsAPIResponse = {
+  productList: IProduct[];
+  totalProducts: number;
+};

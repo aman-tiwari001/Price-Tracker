@@ -40,8 +40,8 @@ export const fetchFromSwiggyInstamart = async (query: String, location: ILocatio
               'x-build-version': '2.260.0',
               Referer: `https://www.swiggy.com/instamart/search?custom_back=true&query=${query}`,
               'Referrer-Policy': 'strict-origin-when-cross-origin',
-              // 'User-Agent':
-              //   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
               cookie: locationCookie,
             },
             body: JSON.stringify({ facets: {}, sortAttribute: '' }),

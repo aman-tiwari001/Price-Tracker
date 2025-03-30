@@ -1,5 +1,5 @@
 import CONSTANTS from '../config/constant';
-import { IProduct } from '../types/schema';
+import { IProduct, ProductsAPIResponse } from '../types/schema';
 
 type Image = {
   s: string;
@@ -15,10 +15,10 @@ type BBNowResponse = {
   }[];
 };
 
-export const extractBBNowProducts = (data: BBNowResponse): IProduct[] => {
+export const extractBBNowProducts = (data: BBNowResponse): ProductsAPIResponse => {
   const products: IProduct[] = [];
 
-  if (!data || !data.tabs || !data.tabs.length) return products;
+  if (!data || !data.tabs || !data.tabs.length) return { productList: [], totalProducts: 0 };
 
   const productList = data.tabs[0]?.product_info?.products || [];
 
@@ -52,5 +52,5 @@ export const extractBBNowProducts = (data: BBNowResponse): IProduct[] => {
     products.push(extractedProduct);
   });
 
-  return products;
+  return { productList: products, totalProducts: products.length };
 };

@@ -1,7 +1,7 @@
-import CONSTANTS from "../config/constant";
-import { IProduct } from "../types/schema";
+import CONSTANTS from '../config/constant';
+import { IProduct, ProductsAPIResponse } from '../types/schema';
 
-export const extractBlinkitProducts = (jsonData: any): IProduct[] => {
+export const extractBlinkitProducts = (jsonData: any): ProductsAPIResponse => {
   let products: IProduct[] = [];
 
   if (jsonData?.objects) {
@@ -23,14 +23,16 @@ export const extractBlinkitProducts = (jsonData: any): IProduct[] => {
           discount: productData.discount || undefined,
           brand: productData.brand || undefined,
           category: productData.leaf_category?.name || undefined,
-          ratings: productData.rating_flag ? {
-            average: parseFloat(productData.rating_text_color || '0'),
-            total: parseInt(productData.rating_count_text || '0'),
-          } : undefined,
+          ratings: productData.rating_flag
+            ? {
+                average: parseFloat(productData.rating_text_color || '0'),
+                total: parseInt(productData.rating_count_text || '0'),
+              }
+            : undefined,
           platform: CONSTANTS.PLATFORMS.blinkit,
         });
       }
     });
   }
-  return products;
+  return { productList: products, totalProducts: products.length };
 };

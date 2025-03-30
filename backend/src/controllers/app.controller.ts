@@ -27,26 +27,26 @@ export const searchProduct = async (req: Request, res: Response) => {
 
     const blinkitJsonPromise = fetchFromBlinkit(queryString, location);
     const zeptoJsonPromise = fetchFromZepto(queryString, location);
-    const bbnowJsonPromise = fetchFromBBNow(queryString, location);
+    const bbNowJsonPromise = fetchFromBBNow(queryString, location);
     const swiggyInstamartPromise = fetchFromSwiggyInstamart(queryString, location);
 
-    const [blinkitJsonRes, zeptoJsonRes, bbnowJsonRes, swiggyInstamartRes] = await Promise.all([
+    const [blinkitJsonRes, zeptoJsonRes, bbNowJsonRes, swiggyInstamartRes] = await Promise.all([
       blinkitJsonPromise,
       zeptoJsonPromise,
-      bbnowJsonPromise,
-      swiggyInstamartPromise
+      bbNowJsonPromise,
+      swiggyInstamartPromise,
     ]);
 
-    const blinkitProductList = extractBlinkitProducts(blinkitJsonRes);
-    const zeptoProductList = extractZeptoProducts(zeptoJsonRes);
-    const bbnowProductList = extractBBNowProducts(bbnowJsonRes);
-    const swiggyInstamartProductList = extractSwiggyProducts(swiggyInstamartRes);
+    const blinkit = extractBlinkitProducts(blinkitJsonRes);
+    const zepto = extractZeptoProducts(zeptoJsonRes);
+    const bbNow = extractBBNowProducts(bbNowJsonRes);
+    const swiggyInstamart = extractSwiggyProducts(swiggyInstamartRes);
 
     return responseHandler(res, 200, true, 'Products fetched successfully', {
-      blinkitProductList,
-      zeptoProductList,
-      bbnowProductList,
-      swiggyInstamartProductList
+      blinkit,
+      zepto,
+      bbNow,
+      swiggyInstamart,
     });
   } catch (error: any) {
     console.error('Error fetching from all three:', error);
