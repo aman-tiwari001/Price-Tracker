@@ -1,4 +1,4 @@
-export function jaccardIndex(str1: string, str2: string): number {
+export const jaccardIndex = (str1: string, str2: string): number => {
   const stopwords = new Set([
     'fresh',
     'new',
@@ -67,4 +67,4 @@ export function jaccardIndex(str1: string, str2: string): number {
   const union = new Set([...set1, ...set2]);
 
   return union.size === 0 ? 0 : intersection.size / union.size;
-}
+};

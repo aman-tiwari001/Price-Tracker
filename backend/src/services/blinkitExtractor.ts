@@ -2,7 +2,7 @@ import CONSTANTS from '../config/constant';
 import { IProduct, ProductsAPIResponse } from '../types/schema';
 
 export const extractBlinkitProducts = (jsonData: any): ProductsAPIResponse => {
-  let products: IProduct[] = [];
+  const products: IProduct[] = [];
 
   if (jsonData?.objects) {
     jsonData.objects.forEach((obj: any) => {

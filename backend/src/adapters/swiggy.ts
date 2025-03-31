@@ -3,7 +3,7 @@ import { ILocation } from '../types/schema';
 import { generateSignedCoordinate } from '../utils/lat_lngValidator';
 import CONSTANTS from '../config/constant';
 
-export const fetchFromSwiggyInstamart = async (query: String, location: ILocation) => {
+export const fetchFromSwiggyInstamart = async (query: string, location: ILocation) => {
   try {
     const locationCookie = `lat=${generateSignedCoordinate(parseFloat(location.lat), 'swiggy')}; lng=${generateSignedCoordinate(parseFloat(location.lng), 'swiggy')}; userLocation=${encodeURIComponent(JSON.stringify(location))};`;
     const browser = await puppeteer.launch({ headless: true });

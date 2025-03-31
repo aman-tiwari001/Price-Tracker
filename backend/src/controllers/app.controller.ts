@@ -1,14 +1,15 @@
 import { Request, Response } from 'express';
 import { fetchFromBBNow } from '../adapters/bbnow';
-import { fetchFromBlinkit } from '../adapters/blinkit';
 import { fetchFromZepto } from '../adapters/zepto';
+import { fetchFromBlinkit } from '../adapters/blinkit';
+import { fetchFromSwiggyInstamart } from '../adapters/swiggy';
 import { extractBBNowProducts } from '../services/bbnowExtractor';
 import { extractBlinkitProducts } from '../services/blinkitExtractor';
 import { extractZeptoProducts } from '../services/zeptoExtractor';
+import { extractSwiggyProducts } from '../services/swiggyExtractor';
 import { isValidLatLng } from '../utils/lat_lngValidator';
 import { responseHandler } from '../utils/responseHandler';
-import { fetchFromSwiggyInstamart } from '../adapters/swiggy';
-import { extractSwiggyProducts } from '../services/swiggyExtractor';
+import redis from '../config/redis';
 
 export const searchProduct = async (req: Request, res: Response) => {
   try {
@@ -23,7 +24,28 @@ export const searchProduct = async (req: Request, res: Response) => {
     }
 
     const location = { lat: String(lat), lng: String(lng) };
-    const queryString = String(q);
+    const queryString = String(q).toLowerCase().trim();
+
+    // Checking for cached data in Redis
+    const isLocationCache = await redis.geosearch(
+      'locations',
+      'FROMLONLAT',
+      Number(lng),
+      Number(lat),
+      'BYRADIUS',
+      5000,
+      'm',
+    );
+    const cachedData = await redis.get(`search:${queryString}`);
+
+    if (isLocationCache && cachedData)
+      return responseHandler(
+        res,
+        200,
+        true,
+        'Products fetched successfully',
+        JSON.parse(cachedData),
+      );
 
     const blinkitJsonPromise = fetchFromBlinkit(queryString, location);
     const zeptoJsonPromise = fetchFromZepto(queryString, location);
@@ -41,6 +63,15 @@ export const searchProduct = async (req: Request, res: Response) => {
     const zepto = extractZeptoProducts(zeptoJsonRes);
     const bbNow = extractBBNowProducts(bbNowJsonRes);
     const swiggyInstamart = extractSwiggyProducts(swiggyInstamartRes);
+
+    // Caching the data in Redis
+    await redis.geoadd('locations', Number(lng), Number(lat), queryString);
+    await redis.set(
+      `search:${queryString}`,
+      JSON.stringify({ blinkit, zepto, bbNow, swiggyInstamart }),
+      'EX',
+      3600,
+    );
 
     return responseHandler(res, 200, true, 'Products fetched successfully', {
       blinkit,

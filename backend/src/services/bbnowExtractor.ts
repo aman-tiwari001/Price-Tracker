@@ -23,7 +23,7 @@ export const extractBBNowProducts = (data: BBNowResponse): ProductsAPIResponse =
   const productList = data.tabs[0]?.product_info?.products || [];
 
   productList.forEach((product: any) => {
-    let extractedProduct: IProduct = {
+    const extractedProduct: IProduct = {
       name: product.desc || 'Unknown',
       brand: product.brand?.name || 'Unknown',
       description: product.usp || 'No description available',
