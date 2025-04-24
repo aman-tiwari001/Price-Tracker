@@ -36,12 +36,6 @@ export const fetchFromZepto = async (query: string, location: ILocation) => {
 
     const storeId = (await response1.json()).storeServiceableResponse.storeId;
 
-    fetch('https://api.zepto.com/api/v3/search', {
-      headers: {},
-      body: '{"query":"paneer","pageNumber":0,"intentId":"677d6ffb-e94a-49f4-99c0-3c283552238f","mode":"AUTOSUGGEST","userSessionId":"349d7ff6-d5f6-419e-acd6-d8f121a455ee"}',
-      method: 'POST',
-    });
-
     const response2 = await fetch(`${CONSTANTS.ZEPTO_API_URL2}`, {
       method: 'POST',
       headers: {

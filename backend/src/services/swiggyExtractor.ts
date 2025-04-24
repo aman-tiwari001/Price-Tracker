@@ -15,7 +15,7 @@ export const extractSwiggyProducts = (jsonData: any): ProductsAPIResponse => {
         prices: {
           mrp: variation.price?.mrp,
           store_price: variation.price?.store_price,
-          offer_price: variation.price?.offer_price,
+          sellingPrice: variation.price?.offer_price,
           discount: variation.price?.offer_applied?.listing_description,
         },
         eta: variation.sourcing_time || undefined,
@@ -28,6 +28,9 @@ export const extractSwiggyProducts = (jsonData: any): ProductsAPIResponse => {
         platform: CONSTANTS.PLATFORMS.swiggyInstamart,
       }));
     });
+  });
+  products.forEach((item) => {
+    item.images = item.images.map((img) => 'https://media-assets.swiggy.com/' + img);
   });
   return { productList: products, totalProducts: products.length };
 };

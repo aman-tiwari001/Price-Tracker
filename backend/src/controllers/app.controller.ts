@@ -58,7 +58,7 @@ export const searchProduct = async (req: Request, res: Response) => {
       bbNowJsonPromise,
       swiggyInstamartPromise,
     ]);
-
+    
     const blinkit = extractBlinkitProducts(blinkitJsonRes);
     const zepto = extractZeptoProducts(zeptoJsonRes);
     const bbNow = extractBBNowProducts(bbNowJsonRes);

@@ -30,8 +30,8 @@ export const extractBBNowProducts = (data: BBNowResponse): ProductsAPIResponse =
       category: product.category?.mlc_name || 'Unknown',
       prices: {
         mrp: product.pricing?.discount?.mrp || null,
-        selling_price: product.pricing?.discount?.prim_price?.sp || null,
-        discount_percentage: product.pricing?.discount?.d_text || null,
+        sellingPrice: product.pricing?.discount?.prim_price?.sp || null,
+        discountPercentage: product.pricing?.discount?.d_text || null,
       },
       images: product.images ? product.images.map((img: Image) => img.l) : [],
       eta: product.availability?.short_eta || 'N/A',
