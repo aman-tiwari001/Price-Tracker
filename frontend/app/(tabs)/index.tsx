@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   Share,
-  StatusBar,
   Text,
   TextInput,
   View,
@@ -18,10 +17,14 @@ import Feather from '@expo/vector-icons/Feather';
 import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { getUserLocation } from '@/utils/getUserLocation';
+import { useLocationStore } from '@/store/locationStore';
 
 export default function HomeScreen() {
   const searchRef = useRef<TextInput>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const { location, updateLocation } = useLocationStore();
 
   const onShare = async () => {
     try {
@@ -46,51 +49,55 @@ export default function HomeScreen() {
     }
   };
 
-  const handlePress = () => {
-    if (searchRef.current) {
-      searchRef.current.blur();
-      searchRef.current.focus();
-    }
-  };
+  useEffect(() => {
+    (async () => {
+      const res = await getUserLocation();
+      updateLocation({
+        lat: res.lat,
+        lng: res.lng,
+        address: res.address,
+      });
+    })();
+  }, []);
 
   return (
     <GestureHandlerRootView>
       <ScrollView className='h-full w-full'>
-        <StatusBar backgroundColor={CONSTANTS.colors.primary} barStyle='light-content' />
         <View className='bg-primary p-4 pb-7'>
           <View className='flex flex-row justify-start pb-2 text-white gap-3'>
             <FontAwesome6 name='location-dot' size={20} color={CONSTANTS.colors.secondary} />
-            <Text className='text-xl text-secondary'>New Delhi</Text>
-            {/* <MaterialIcons name='arrow-drop-down' color={CONSTANTS.colors.secondary} size={24} /> */}
+            <Text className='text-xl text-secondary'>
+              {location?.address
+                ? location.address.name +
+                  ', ' +
+                  location.address.district +
+                  ', ' +
+                  location.address.city
+                : 'Your Location'}
+            </Text>
           </View>
-          <View className='mt-4 w-full flex-row items-center rounded-xl bg-gray-100 px-4 py-2'>
+          <View className='mt-4 w-full flex-row items-center rounded-xl bg-gray-100 px-4 py-4'>
             <Octicons name='search' color='#000' size={24} />
-            <TextInput
-              className='flex-1 ml-2 text-lg'
-              placeholder='Search your groceries'
-              placeholderTextColor='gray'
-              ref={searchRef}
-              returnKeyType='search'
-              onPress={() => router.push('/results')}
-            />
+            <Text className='flex-1 ml-2 text-lg' onPress={() => router.push('/search')}>
+              Search your groceries
+            </Text>
           </View>
         </View>
         <View className='mx-auto my-10 flex items-center justify-center'>
           <HomeCarousel setCurrentIndex={setCurrentIndex} />
 
-          {/*Carousel indicators - dots */}
           <View className='flex-row items-center justify-center gap-2 mt-4'>
             {[...Array(4)].map((_, index) => (
-              <Text
+              <View
                 key={index}
                 className={`${index === currentIndex ? 'bg-primary' : 'bg-gray-400'} h-2 w-2 rounded-full`}
-              ></Text>
+              />
             ))}
           </View>
 
           <Pressable
             onPress={() => Linking.openURL(`whatsapp://send?phone=99999999999&text=Hi`)}
-            className='absolute bottom-[-250px] right-0 rounded-full p-0 active:scale-95 transition duration-150 bg-white'
+            className='absolute bottom-[-260px] right-0 rounded-full p-0 active:scale-95 transition duration-150 bg-white'
           >
             <Image
               source={require('../../assets/images/whatsapp-logo.png')}
@@ -99,7 +106,10 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         <Pressable className='bg-primary active:bg-blue-700 mb-7 active:scale-95 rounded-xl mx-auto py-3 px-2 w-[40%] transition duration-150'>
-          <Text className='text-secondary font-semibold text-center text-lg' onPress={handlePress}>
+          <Text
+            className='text-secondary font-semibold text-center text-lg'
+            onPress={() => router.push('/search')}
+          >
             Start Comparing
           </Text>
         </Pressable>

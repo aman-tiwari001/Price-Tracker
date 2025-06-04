@@ -42,6 +42,7 @@ export interface ILocation {
 }
 
 export interface IProduct {
+  id: string,
   name: string;
   description?: string;
   images: string[];
@@ -55,7 +56,8 @@ export interface IProduct {
   category?: string;
   ratings?: { average: number; total: number };
   reviews?: unknown;
-  productLink?: string;
+  webLink?: string;
+  appLink?: string;
   platform: PlatformType;
 }
 

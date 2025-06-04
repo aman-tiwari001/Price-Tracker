@@ -19,14 +19,13 @@ const TabIcon = ({
     return (
       <View className='flex flex-row items-center justify-center gap-2 bg-primary w-28 h-14 rounded-full'>
         {icon}
-        <Text className='text-[#ffff00] text-[15px] font-bold'>{label}</Text>
+        <Text className='text-secondary text-[15px] font-bold'>{label}</Text>
       </View>
     );
   }
   return <View className='w-full h-full flex items-center justify-center'>{icon}</View>;
 };
 
-// Custom tab bar button to apply press color
 const CustomTabBarButton = ({ children, onPress }: BottomTabBarButtonProps) => {
   return (
     <Pressable

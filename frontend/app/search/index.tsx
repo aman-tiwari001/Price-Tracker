@@ -1,20 +1,33 @@
-import { Image, Modal, Pressable, StatusBar, Text, ToastAndroid, View } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import Octicons from '@expo/vector-icons/Octicons';
-import { GestureHandlerRootView, ScrollView, TextInput } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import ProductCard from '@/components/ProductCard';
 import { searchProduct } from '@/api';
-import { getUserLocation } from '@/utils/getUserLocation';
 import { AllProductsTypes } from '@/types';
+import Octicons from '@expo/vector-icons/Octicons';
+import ProductCard from '@/components/ProductCard';
+import { getUserLocation } from '@/utils/getUserLocation';
+import React, { useEffect, useRef, useState } from 'react';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
+import { GestureHandlerRootView, ScrollView, TextInput } from 'react-native-gesture-handler';
+import { Image, Modal, Pressable, Text, ToastAndroid, View } from 'react-native';
+import { getFilters } from '@/utils/getFilters';
+import { CONSTANTS } from '@/utils/constant';
 
-const ResultsScreen = () => {
+interface filtersInterface {
+  categories: string[];
+  brands: string[];
+  quantities: string[];
+  priceRange: {
+    min: number;
+    max: number;
+  };
+}
+
+const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [productsLimit, setProductsLimit] = useState(0);
   const [loading, setLoading] = useState(false);
+  const searchRef = useRef<TextInput | null>(null);
   const [allProducts, setAllProducts] = useState<AllProductsTypes>({
     blinkit: {
       productList: [],
@@ -33,12 +46,27 @@ const ResultsScreen = () => {
       totalProducts: 0,
     },
   });
+  const [filters, setFilters] = useState<filtersInterface>({
+    categories: [],
+    brands: [],
+    quantities: [],
+    priceRange: {
+      min: 0,
+      max: 0,
+    },
+  });
 
   const handleSearch = async () => {
     try {
       setLoading(true);
       const location = await getUserLocation();
-      const res = await searchProduct(searchQuery, String(location.lat), String(location.lng));
+      console.log(location.address.formattedAddress)
+      const res = await searchProduct(
+        searchQuery,
+        String(location.lat),
+        String(location.lng),
+        String(location.address.formattedAddress),
+      );
       const values = [
         res.data.blinkit.totalProducts,
         res.data.bbNow.totalProducts,
@@ -48,8 +76,10 @@ const ResultsScreen = () => {
       const nonZeroValues = values.filter((val) => val > 0);
       setProductsLimit(Math.min(...nonZeroValues));
       setAllProducts(res.data);
-      console.log(res);
       ToastAndroid.show('✅ Success', ToastAndroid.LONG);
+      const filters = getFilters(res.data);
+      console.log('Filters:', filters);
+      setFilters(filters);
     } catch (error) {
       console.log(error);
       ToastAndroid.show('Something went wrong!', ToastAndroid.LONG);
@@ -58,11 +88,21 @@ const ResultsScreen = () => {
     }
   };
 
+  useEffect(() => {
+    if (searchRef.current) {
+      searchRef.current.blur();
+      searchRef.current.focus();
+      searchRef.current.setNativeProps({ selection: { start: 0, end: 0 } });
+      setTimeout(() => {
+        searchRef.current?.focus();
+      }, 100);
+    }
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ backgroundColor: '#fff', flex: 1 }}>
-      <StatusBar backgroundColor='#fff' barStyle='dark-content' />
       <ScrollView style={{ flex: 1 }}>
-        <View className='mt-4 flex-row items-center border-2 rounded-lg border-gray-300 mx-auto w-[95%] bg-gray-100 text-white px-4'>
+        <View className='mt-4 flex-row items-center border-2 rounded-xl border-gray-300 mx-auto w-[95%] bg-gray-100 text-white py-1 px-4'>
           <Octicons
             name='arrow-left'
             color='#000'
@@ -78,6 +118,7 @@ const ResultsScreen = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.nativeEvent.text)}
             onSubmitEditing={handleSearch}
+            ref={searchRef}
           />
           <Octicons
             name='x'
@@ -87,15 +128,12 @@ const ResultsScreen = () => {
             onPress={() => setSearchQuery('')}
           />
         </View>
-        {isFilterOpen && (
-          <StatusBar backgroundColor='rgba(0, 0, 0, 0.5)' barStyle='light-content' />
-        )}
         <View>
           <View className='flex-row justify-between items-center mx-4 mt-4'>
             <View>
               <Pressable
                 onPress={() => setIsFilterOpen(true)}
-                className='flex flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1'
+                className='flex flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1 active:bg-gray-200'
               >
                 <FontAwesome6 name='sliders' size={16} color='#4B5563' />
                 <Text className='text-gray-600'>Filters</Text>
@@ -117,21 +155,76 @@ const ResultsScreen = () => {
                         <Octicons name='x' size={24} color='#000' />
                       </Pressable>
                     </View>
-                    {/* Add your filter content here */}
-                    <Text style={{ alignItems: 'center', justifyContent: 'center' }}>
-                      All category filters will come here
-                    </Text>
+                    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                      <View className='w-full mt-4'>
+                        <Text className='text-lg font-semibold mb-2'>Categories</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {filters.categories.map((category, index) => (
+                            <Pressable
+                              key={index}
+                              className='bg-gray-200 rounded-full px-3 py-1 mr-2'
+                              onPress={() => {
+                                // Handle category filter logic here
+                              }}
+                            >
+                              <Text className='text-gray-700'>{category}</Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+
+                      <View className='w-full mt-4'>
+                        <Text className='text-lg font-semibold mb-2'>Brands</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {filters.brands.map((brand, index) => (
+                            <Pressable
+                              key={index}
+                              className='bg-gray-200 rounded-full px-3 py-1 mr-2'
+                              onPress={() => {
+                                // Handle brand filter logic here
+                              }}
+                            >
+                              <Text className='text-gray-700'>{brand}</Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+
+                      <View className='w-full mt-4'>
+                        <Text className='text-lg font-semibold mb-2'>Quantities</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {filters.quantities.map((quantity, index) => (
+                            <Pressable
+                              key={index}
+                              className='bg-gray-200 rounded-full px-3 py-1 mr-2'
+                              onPress={() => {
+                                // Handle quantity filter logic here
+                              }}
+                            >
+                              <Text className='text-gray-700'>{quantity}</Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+
+                      <View className='w-full mt-4'>
+                        <Text className='text-lg font-semibold mb-2'>Price Range</Text>
+                        <Text className='text-gray-700'>
+                          ₹{filters.priceRange.min} - ₹{filters.priceRange.max}
+                        </Text>
+                      </View>
+                    </View>
                   </Pressable>
                 </Pressable>
               </Modal>
             </View>
-            <View className='flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1'>
+            <View className='flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1 active:bg-gray-200'>
               <Text className='text-gray-600'>Sort</Text>
               <Octicons name='sort-asc' size={16} color='#4B5563' />
             </View>
           </View>
         </View>
-        <View className='flex-row justify-between items-center mx-4 my-6'></View>
+        <View className='flex-row justify-between items-center mx-4 my-2'></View>
         {loading ? (
           <ProductSkeletonGrid />
         ) : (
@@ -139,12 +232,18 @@ const ResultsScreen = () => {
             horizontal
             contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 10, gap: 10 }}
           >
-            {allProducts?.blinkit.totalProducts && (
+            {allProducts?.blinkit.totalProducts ? (
               <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-3'>
+                <View className='mb-2'>
                   <Image
                     source={require('../../assets/images/blinkit-logo.png')}
-                    className='w-24 h-12 rounded-lg bg-yellow-300 p-0'
+                    style={{
+                      width: 96,
+                      height: 48,
+                      borderRadius: 8,
+                      backgroundColor: '#FACC15',
+                      padding: 0,
+                    }}
                     resizeMode='contain'
                   />
                 </View>
@@ -164,14 +263,17 @@ const ResultsScreen = () => {
                     />
                   ))}
               </View>
-            )}
+            ) : null}
 
-            {allProducts?.zepto.totalProducts && (
+            {allProducts?.zepto.totalProducts ? (
               <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-3'>
+                <View className='mb-2'>
                   <Image
                     source={require('../../assets/images/zepto-logo.png')}
-                    className='w-24 h-12'
+                    style={{
+                      width: 96,
+                      height: 48,
+                    }}
                     resizeMode='contain'
                   />
                 </View>
@@ -191,13 +293,17 @@ const ResultsScreen = () => {
                     />
                   ))}
               </View>
-            )}
-            {allProducts?.swiggyInstamart.totalProducts && (
+            ) : null}
+
+            {allProducts?.swiggyInstamart.totalProducts ? (
               <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-3'>
+                <View className='mb-2'>
                   <Image
                     source={require('../../assets/images/instamart-logo.png')}
-                    className='w-24 h-12'
+                    style={{
+                      width: 96,
+                      height: 48,
+                    }}
                     resizeMode='contain'
                   />
                 </View>
@@ -217,14 +323,17 @@ const ResultsScreen = () => {
                     />
                   ))}
               </View>
-            )}
+            ) : null}
 
-            {allProducts?.bbNow.totalProducts && (
+            {allProducts?.bbNow.totalProducts ? (
               <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-3'>
+                <View className='mb-2'>
                   <Image
                     source={require('../../assets/images/bbnow-logo.png')}
-                    className='w-24 h-12'
+                    style={{
+                      width: 96,
+                      height: 48,
+                    }}
                     resizeMode='contain'
                   />
                 </View>
@@ -244,7 +353,7 @@ const ResultsScreen = () => {
                     />
                   ))}
               </View>
-            )}
+            ) : null}
           </ScrollView>
         )}
       </ScrollView>
@@ -252,4 +361,4 @@ const ResultsScreen = () => {
   );
 };
 
-export default ResultsScreen;
+export default SearchScreen;

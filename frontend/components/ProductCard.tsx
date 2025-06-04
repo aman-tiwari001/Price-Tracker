@@ -1,7 +1,8 @@
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, Pressable } from 'react-native';
 import React from 'react';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { CONSTANTS } from '@/utils/constant';
+import Feather from '@expo/vector-icons/Feather';
 
 interface ProductCardProps {
   name: string;
@@ -40,6 +41,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         resizeMode='cover'
         style={{ width: 110, height: 130, borderRadius: 8, margin: 'auto' }}
       />
+      <Pressable style={{top: 110, right: 10}} className='flex-row gap-2 absolute self-start bg-primary active:bg-blue-700 justify-center items-center active:scale-95 rounded-xl py-2 px-2 transition duration-150'>
+        <Feather color={CONSTANTS.colors.secondary} name='shopping-cart' size={15} />
+        <Text className='text-secondary text-center font-semibold' style={{fontSize: 14}}>Add</Text>
+      </Pressable>
       <Text
         className='text-primary'
         style={{
@@ -58,9 +63,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Text style={{ wordWrap: 'break-word', lineHeight: 17 }}>
           {name.length > 45 ? name.slice(0, 42) + '...' : name}
         </Text>
-        <Text className='font-bold text-wrap'>{brand}</Text>
+        {/* <Text className='font-bold text-wrap'>{brand}</Text> */}
       </View>
-      <View className='flex-row items-center' style={{ gap: 3 }}>
+      <View className='flex-row items-center mt-4' style={{ gap: 3 }}>
         <FontAwesome6 name='clock' size={9} color='green' />
         <Text style={{ fontSize: 10 }}>{eta.toUpperCase()}</Text>
       </View>

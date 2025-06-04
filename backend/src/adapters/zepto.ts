@@ -1,82 +1,81 @@
+import puppeteer, { Page } from 'puppeteer';
 import CONSTANTS from '../config/constant';
 import { ILocation } from '../types/schema';
+import fs from 'fs';
 
-export const fetchFromZepto = async (query: string, location: ILocation) => {
-  try {
-    const response1 = await fetch(
-      `${CONSTANTS.ZEPTO_API_URL1}?latitude=${location.lat}&longitude=${location.lng}&page_type=HOME&version=v2`,
-      {
-        method: 'GET',
-        headers: {
-          accept: 'application/json, text/plain, */*',
-          'accept-language': 'en-US,en;q=0.9,hi;q=0.8',
-          app_sub_platform: 'WEB',
-          app_version: '12.64.0',
-          auth_revamp_flow: 'v2',
-          'cache-control': 'no-cache',
-          compatible_components:
-            'CONVENIENCE_FEE,RAIN_FEE,EXTERNAL_COUPONS,STANDSTILL,BUNDLE,MULTI_SELLER_ENABLED,PIP_V1,ROLLUPS,SCHEDULED_DELIVERY,SAMPLING_ENABLED,ETA_NORMAL_WITH_149_DELIVERY,ETA_NORMAL_WITH_199_DELIVERY,HOMEPAGE_V2,NEW_ETA_BANNER,VERTICAL_FEED_PRODUCT_GRID,AUTOSUGGESTION_PAGE_ENABLED,AUTOSUGGESTION_PIP,AUTOSUGGESTION_AD_PIP,BOTTOM_NAV_FULL_ICON,COUPON_WIDGET_CART_REVAMP,DELIVERY_UPSELLING_WIDGET,MARKETPLACE_CATEGORY_GRID,NO_PLATFORM_CHECK_ENABLED_V2,SUPER_SAVER:1,SUPERSTORE_V1,PROMO_CASH:0,24X7_ENABLED_V1,TABBED_CAROUSEL_V2,HP_V4_FEED,WIDGET_BASED_ETA,NEW_FEE_STRUCTURE,NEW_BILL_INFO,RE_PROMISE_ETA_ORDER_SCREEN_ENABLED,SUPERSTORE_V1,MANUALLY_APPLIED_DELIVERY_FEE_RECEIVABLE,MARKETPLACE_REPLACEMENT,ZEPTO_PASS,ZEPTO_PASS:1,ZEPTO_PASS:2,ZEPTO_PASS_RENEWAL,CART_REDESIGN_ENABLED,SHIPMENT_WIDGETIZATION_ENABLED,TABBED_CAROUSEL_V2,24X7_ENABLED_V1,PROMO_CASH:0,HOMEPAGE_V2,SUPER_SAVER:1,NO_PLATFORM_CHECK_ENABLED_V2,HP_V4_FEED,GIFT_CARD,SCLP_ADD_MONEY,GIFTING_ENABLED,OFSE,WIDGET_BASED_ETA,NEW_ETA_BANNER,',
-          marketplace_type: 'ZEPTO_NOW',
-          platform: 'WEB',
-          pragma: 'no-cache',
-          priority: 'u=1, i',
-          'sec-ch-ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
-          'sec-ch-ua-mobile': '?0',
-          'sec-ch-ua-platform': '"Windows"',
-          'sec-fetch-dest': 'empty',
-          'sec-fetch-mode': 'cors',
-          'sec-fetch-site': 'same-site',
-          source: 'DIRECT',
-          tenant: 'ZEPTO',
-          Referer: 'https://www.zepto.com/',
-          'Referrer-Policy': 'strict-origin-when-cross-origin',
-        },
-      },
-    );
-
-    const storeId = (await response1.json()).storeServiceableResponse.storeId;
-
-    const response2 = await fetch(`${CONSTANTS.ZEPTO_API_URL2}`, {
-      method: 'POST',
-      headers: {
-        accept: 'application/json, text/plain, */*',
-        'accept-language': 'en-US,en;q=0.9,hi;q=0.8',
-        app_sub_platform: 'WEB',
-        app_version: '12.64.0',
-        appversion: '12.64.0',
-        auth_revamp_flow: 'v2',
-        'cache-control': 'no-cache',
-        compatible_components:
-          'CONVENIENCE_FEE,RAIN_FEE,EXTERNAL_COUPONS,STANDSTILL,BUNDLE,MULTI_SELLER_ENABLED,PIP_V1,ROLLUPS,SCHEDULED_DELIVERY,SAMPLING_ENABLED,ETA_NORMAL_WITH_149_DELIVERY,ETA_NORMAL_WITH_199_DELIVERY,HOMEPAGE_V2,NEW_ETA_BANNER,VERTICAL_FEED_PRODUCT_GRID,AUTOSUGGESTION_PAGE_ENABLED,AUTOSUGGESTION_PIP,AUTOSUGGESTION_AD_PIP,BOTTOM_NAV_FULL_ICON,COUPON_WIDGET_CART_REVAMP,DELIVERY_UPSELLING_WIDGET,MARKETPLACE_CATEGORY_GRID,NO_PLATFORM_CHECK_ENABLED_V2,SUPER_SAVER:1,SUPERSTORE_V1,PROMO_CASH:0,24X7_ENABLED_V1,TABBED_CAROUSEL_V2,HP_V4_FEED,WIDGET_BASED_ETA,NEW_ROLLUPS_ENABLED,RERANKING_QCL_RELATED_PRODUCTS,PLP_ON_SEARCH,PAAN_BANNER_WIDGETIZED,ROLLUPS_UOM,DYNAMIC_FILTERS,PHARMA_ENABLED,AUTOSUGGESTION_RECIPE_PIP,SEARCH_FILTERS_V1,QUERY_DESCRIPTION_WIDGET,MEDS_WITH_SIMILAR_SALT_WIDGET,NEW_FEE_STRUCTURE,NEW_BILL_INFO,RE_PROMISE_ETA_ORDER_SCREEN_ENABLED,SUPERSTORE_V1,MANUALLY_APPLIED_DELIVERY_FEE_RECEIVABLE,MARKETPLACE_REPLACEMENT,ZEPTO_PASS,ZEPTO_PASS:1,ZEPTO_PASS:2,ZEPTO_PASS_RENEWAL,CART_REDESIGN_ENABLED,SHIPMENT_WIDGETIZATION_ENABLED,TABBED_CAROUSEL_V2,24X7_ENABLED_V1,PROMO_CASH:0,HOMEPAGE_V2,SUPER_SAVER:1,NO_PLATFORM_CHECK_ENABLED_V2,HP_V4_FEED,GIFT_CARD,SCLP_ADD_MONEY,GIFTING_ENABLED,OFSE,WIDGET_BASED_ETA,NEW_ETA_BANNER,',
-        'content-type': 'application/json',
-        marketplace_type: 'ZEPTO_NOW',
-        platform: 'WEB',
-        pragma: 'no-cache',
-        priority: 'u=1, i',
-        'sec-ch-ua': '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-site',
-        storeid: storeId,
-        tenant: 'ZEPTO',
-        'x-without-bearer': 'true',
-        Referer: 'https://www.zepto.com/',
-        'Referrer-Policy': 'strict-origin-when-cross-origin',
-      },
-      body: JSON.stringify({
-        query,
-        pageNumber: 0,
-        intentId: '',
-        mode: 'AUTOSUGGEST',
-        userSessionId: '',
-      }),
+async function autoScroll(page: Page) {
+  await page.evaluate(() => {
+    return new Promise<void>((resolve) => {
+      let totalHeight = 0;
+      const distance = 1000;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100);
     });
+  });
+}
 
-    return await response2.json();
-  } catch (error) {
-    console.error('Error fetching from Zepto:', error);
-    return null;
+export const fetchFromZepto = async (query: string, address: string) => {
+  const url1 = `https://www.zeptonow.com/`;
+  const url2 = `https://www.zeptonow.com/search?query=${query}`;
+
+  // Launch browser with proxy
+  const browser = await puppeteer.launch({
+    headless: true,
+  });
+
+  const page = await browser.newPage();
+  // await page.setUserAgent(
+  // 	'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+  // );
+  // await page.setViewport({ width: 1280, height: 800 });
+  // await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+  await page.goto(url1, { waitUntil: 'networkidle2' });
+
+  console.log('\nFetching HTML page from\n', url1);
+
+  // Click on address selection button
+  await page.click('[data-testid="user-address"]');
+  // Wait for the address input to be visible
+  await page.waitForSelector('input[placeholder="Search a new address"][type="text"]', {
+    visible: true,
+  });
+  // Input the address in the search box
+  await page.type('input[placeholder="Search a new address"][type="text"]', address);
+  // Wait for the address suggestions to appear
+  await page.waitForSelector('[data-testid="address-search-item"]', { visible: true });
+  // Click on the first address suggestion
+  await page.click('[data-testid="address-search-item"]');
+  // Wait for the location confirmation button to be visible
+  await page.waitForSelector('[data-testid="location-confirm-btn"][type="button"]', {
+    visible: true,
+  });
+  // Click on the confirm button to set the location
+  await page.click('[data-testid="location-confirm-btn"][type="button"]');
+
+  await page.goto(url2, { waitUntil: 'networkidle2' });
+
+  console.log('\nFetching HTML page from\n', url2);
+
+  // Fetch the content of the page
+  let productData = await page.content();
+
+  await browser.close();
+
+  productData = productData.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+  const directory = 'scraped_pages/';
+
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
   }
+  fs.writeFileSync(`${directory}zepto.html`, productData, 'utf8');
+
+  return productData;
 };
