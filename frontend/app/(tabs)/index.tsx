@@ -95,7 +95,7 @@ export default function HomeScreen() {
             ))}
           </View>
 
-          <Pressable
+          {/* <Pressable
             onPress={() => Linking.openURL(`whatsapp://send?phone=99999999999&text=Hi`)}
             className='absolute bottom-[-260px] right-0 rounded-full p-0 active:scale-95 transition duration-150 bg-white'
           >
@@ -103,7 +103,7 @@ export default function HomeScreen() {
               source={require('../../assets/images/whatsapp-logo.png')}
               className='w-16 h-16 rounded-full'
             />
-          </Pressable>
+          </Pressable> */}
         </View>
         <Pressable className='bg-primary active:bg-blue-700 mb-7 active:scale-95 rounded-xl mx-auto py-3 px-2 w-[40%] transition duration-150'>
           <Text

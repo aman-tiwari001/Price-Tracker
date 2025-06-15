@@ -1,6 +1,11 @@
 import { View, Text, Dimensions, Image } from 'react-native';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import { useRef } from 'react';
+import { configureReanimatedLogger } from 'react-native-reanimated';
+
+configureReanimatedLogger({
+  strict: false,
+});
 
 const HomeCarousel = ({ setCurrentIndex }: { setCurrentIndex: Function }) => {
   const width = Dimensions.get('window').width;

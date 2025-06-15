@@ -3,7 +3,10 @@ import CONSTANTS from '../config/constant';
 import { IProduct, ProductsAPIResponse } from '../types/schema';
 
 const slugify = (text: string): string =>
-  text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 
 const extractDeliveryEta = (sourcingTime: string | undefined): string => {
   if (!sourcingTime || sourcingTime.trim() === '') return '15 mins';
@@ -29,7 +32,11 @@ export const extractSwiggyProducts = (jsonData: any): ProductsAPIResponse => {
           id: uuidv4(),
           name,
           description: variation.meta?.long_description || variation.meta?.short_description || '',
-          images: (variation.images || []).map((img: string) => `https://media-assets.swiggy.com/${img}`),
+          images: [
+            (variation.images || []).map(
+              (img: string) => `https://media-assets.swiggy.com/${img}`,
+            )[0],
+          ],
           prices: {
             mrp: variation.price?.mrp,
             store_price: variation.price?.store_price,

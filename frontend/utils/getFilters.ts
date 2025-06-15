@@ -16,6 +16,9 @@ type PlatformProducts = {
 
 type Filters = {
   categories: Set<string>;
+  platformCategories: {
+    [platform: string]: Set<string>;
+  };
   brands: Set<string>;
   quantities: Set<string>;
   prices: number[];
@@ -24,10 +27,16 @@ type Filters = {
 export function getFilters(data: PlatformProducts) {
   const filters: Filters = {
     categories: new Set(),
+    platformCategories: {},
     brands: new Set(),
     quantities: new Set(),
     prices: []
   };
+
+  // Initialize platformCategories for each platform
+  for (const platform in data) {
+    filters.platformCategories[platform] = new Set();
+  }
 
   for (const platform in data) {
     const products = data[platform]?.productList || [];
@@ -35,7 +44,9 @@ export function getFilters(data: PlatformProducts) {
     for (const product of products) {
       // Extract category
       if (product.category && typeof product.category === 'string') {
-        filters.categories.add(product.category.trim());
+        const category = product.category.trim();
+        filters.categories.add(category);
+        filters.platformCategories[platform].add(category);
       }
 
       // Extract brand
@@ -66,8 +77,15 @@ export function getFilters(data: PlatformProducts) {
       }
     : { min: 0, max: 0 };
 
+  // Convert platform categories to sorted arrays
+  const platformCategoriesResult: { [platform: string]: string[] } = {};
+  for (const platform in filters.platformCategories) {
+    platformCategoriesResult[platform] = Array.from(filters.platformCategories[platform]).sort();
+  }
+
   return {
     categories: Array.from(filters.categories).sort(),
+    platformCategories: platformCategoriesResult,
     brands: Array.from(filters.brands).sort(),
     quantities: Array.from(filters.quantities).sort(),
     priceRange: priceStats

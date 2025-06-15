@@ -7,7 +7,7 @@ export interface IProduct {
   eta?: string;
   quantity: string;
   multipleQuantityOptions?: number[];
-  stockAvailability: boolean;
+  stockAvailability?: boolean;
   discount?: number;
   brand?: string;
   category?: string;
@@ -15,6 +15,8 @@ export interface IProduct {
   reviews?: unknown;
   productLink?: string;
   platform: unknown;
+  webLink?: string;
+  appLink?: string;
 }
 
 export type AllProductsTypes = {

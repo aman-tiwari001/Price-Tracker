@@ -19,7 +19,10 @@ const extractEtaInMinutes = (iconImageUri?: string): string => {
  * Converts a string into a URL-friendly slug.
  */
 const slugify = (text: string): string =>
-  text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 
 /**
  * Extracts products from Blinkit search API response.
@@ -42,7 +45,7 @@ export const extractBlinkitProducts = (jsonData: any): ProductsAPIResponse => {
       id: uuidv4(),
       name,
       description: productData.attributes?.description || '',
-      images: productData.images || [],
+      images: [productData.images[0]],
       prices: {
         sellingPrice: productData.price,
         mrp: productData.mrp,

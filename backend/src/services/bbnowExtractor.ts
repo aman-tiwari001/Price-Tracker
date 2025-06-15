@@ -56,7 +56,7 @@ export const extractBBNowProducts = (data: BBNowResponse): ProductsAPIResponse =
         sellingPrice: product.pricing?.discount?.prim_price?.sp || null,
         discountPercentage: product.pricing?.discount?.d_text || null,
       },
-      images: product.images ? product.images.map((img: Image) => img.l) : [],
+      images: product.images ? [product.images.map((img: Image) => img.l)[0]] : [],
       eta: product.availability?.short_eta,
       quantity: product.w || 'N/A',
       multipleQuantityOptions: product.children

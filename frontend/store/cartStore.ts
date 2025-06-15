@@ -1,92 +1,60 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { IProduct } from '@/types';
 
-// Define a product type
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image?: string;
-}
-
-// Cart item includes quantity
-export interface CartItem extends Product {
+interface CartItem {
+  product: IProduct;
   quantity: number;
 }
 
-// Define store interface
 interface CartStore {
-  cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  increaseQuantity: (productId: string) => void;
-  decreaseQuantity: (productId: string) => void;
+  items: CartItem[];
+  addItem: (item: Omit<CartItem, 'quantity'>) => void;
+  removeItem: (id: string) => void;
   clearCart: () => void;
-  getTotalItems: () => number;
+  incrementQuantity: (id: string) => void;
+  decrementQuantity: (id: string) => void;
 }
 
-// Create the store
-const useCartStore = create<CartStore>()(
-  persist(
-    (set, get) => ({
-      cart: [],
+export const useCartStore = create<CartStore>((set) => ({
+  items: [],
 
-      addToCart: (product: Product) => {
-        const cart = get().cart;
-        const index = cart.findIndex(item => item.id === product.id);
+  addItem: (item) =>
+    set((state) => {
+      const existingItem = state.items.find((i) => i.product.id === item.product.id);
 
-        if (index !== -1) {
-          cart[index].quantity += 1;
-        } else {
-          cart.push({ ...product, quantity: 1 });
-        }
-
-        set({ cart: [...cart] });
-      },
-
-      removeFromCart: (productId: string) => {
-        const updatedCart = get().cart.filter(item => item.id !== productId);
-        set({ cart: updatedCart });
-      },
-
-      increaseQuantity: (productId: string) => {
-        const cart = get().cart.map(item =>
-          item.id === productId ? { ...item, quantity: item.quantity + 1 } : item
-        );
-        set({ cart });
-      },
-
-      decreaseQuantity: (productId: string) => {
-        const cart = get().cart
-          .map(item =>
-            item.id === productId ? { ...item, quantity: item.quantity - 1 } : item
-          )
-          .filter(item => item.quantity > 0);
-        set({ cart });
-      },
-
-      clearCart: () => set({ cart: [] }),
-
-      getTotalItems: () =>
-        get().cart.reduce((total, item) => total + item.quantity, 0),
+      if (existingItem) {
+        return {
+          items: state.items.map((i) =>
+            i.product.id === item.product.id ? { ...i, quantity: i.quantity + 1 } : i,
+          ),
+        };
+      } else {
+        return {
+          items: [...state.items, { ...item, quantity: 1 }],
+        };
+      }
     }),
-    {
-      name: 'cart-storage',
-      storage: {
-        getItem: async (name: string) => {
-          const value = await AsyncStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: async (name: string, value: any): Promise<void> => {
-          await AsyncStorage.setItem(name, JSON.stringify(value));
-        },
-        removeItem: async (name: string): Promise<void> => {
-          await AsyncStorage.removeItem(name);
-        },
-      },
-    }
-  )
-);
 
-export default useCartStore;
+  removeItem: (id) =>
+    set((state) => ({
+      items: state.items.filter((item) => item.product.id !== id),
+    })),
+
+  clearCart: () => set({ items: [] }),
+
+  incrementQuantity: (id) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.product.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
+    })),
+
+  decrementQuantity: (id) =>
+    set((state) => ({
+      items: state.items
+        .map((item) =>
+          item.product.id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item,
+        )
+        .filter((item) => item.quantity > 0),
+    })),
+}));

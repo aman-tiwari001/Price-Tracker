@@ -79,7 +79,7 @@ const HomeLayout = () => {
         name='cart'
         options={{
           title: 'Cart',
-          headerShown: true,
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}

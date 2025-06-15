@@ -51,16 +51,16 @@ export const searchProduct = async (req: Request, res: Response) => {
     const bbNowJsonPromise = fetchFromBBNow(queryString, location);
     const swiggyInstamartPromise = fetchFromSwiggyInstamart(queryString, location);
 
-    const [blinkitJsonRes, zeptoJsonRes, bbNowJsonRes, swiggyInstamartRes] = await Promise.all([
+    const [blinkitRes, zeptoRes, bbNowRes, swiggyInstamartRes] = await Promise.all([
       blinkitJsonPromise,
       zeptoJsonPromise,
       bbNowJsonPromise,
       swiggyInstamartPromise,
     ]);
 
-    const blinkit = extractBlinkitProducts(blinkitJsonRes);
-    const zepto = extractZeptoProducts(zeptoJsonRes);
-    const bbNow = extractBBNowProducts(bbNowJsonRes);
+    const blinkit = extractBlinkitProducts(blinkitRes);
+    const zepto = extractZeptoProducts(zeptoRes);
+    const bbNow = extractBBNowProducts(bbNowRes);
     const swiggyInstamart = extractSwiggyProducts(swiggyInstamartRes);
 
     await redis.geoadd('locations', Number(lng), Number(lat), queryString);

@@ -1,7 +1,7 @@
-import CONSTANTS from '../config/constant';
-import { v4 as uuidv4 } from 'uuid';
-import { IProduct, ProductsAPIResponse } from '../types/schema';
 import * as cheerio from 'cheerio';
+import { v4 as uuidv4 } from 'uuid';
+import CONSTANTS from '../config/constant';
+import { IProduct, ProductsAPIResponse } from '../types/schema';
 
 export const extractZeptoProducts = (html: string) => {
   const $ = cheerio.load(html);
@@ -31,12 +31,7 @@ export const extractZeptoProducts = (html: string) => {
       .text()
       .replace(/[\t\n]/g, '');
 
-    const images = $(item)
-      .find('[data-testid=product-card-image]')
-      .attr('srcset')
-      ?.split(', ')
-      .map((str) => str.split(' ')[0])
-      .filter(Boolean);
+    const images = Array($(item).find('[data-testid=product-card-image]').attr('src'));
 
     const eta = $(item)
       .find('[alt=clock-icon]')
@@ -44,11 +39,13 @@ export const extractZeptoProducts = (html: string) => {
       .text()
       .replace(/[\t\n]/g, '');
 
+    const webLink = new URL($(item).attr('href') || '', 'https://zeptonow.com').toString() || '';
+
     const prices = {
       sellingPrice: price,
       mrp: discountedPrice,
     };
-    return { name, prices, quantity, images, eta };
+    return { name, prices, quantity, images, eta, webLink, platform: CONSTANTS.PLATFORMS.zepto };
   });
   return { productList: products, totalProducts: products.length };
 };

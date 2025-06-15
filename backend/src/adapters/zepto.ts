@@ -1,7 +1,5 @@
-import puppeteer, { Page } from 'puppeteer';
-import CONSTANTS from '../config/constant';
-import { ILocation } from '../types/schema';
 import fs from 'fs';
+import puppeteer, { Page } from 'puppeteer';
 
 async function autoScroll(page: Page) {
   await page.evaluate(() => {
