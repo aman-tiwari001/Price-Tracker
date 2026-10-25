@@ -1,519 +1,433 @@
-import { router, useNavigation } from 'expo-router';
-import { searchProduct } from '@/api';
-import { AllProductsTypes } from '@/types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { router } from 'expo-router';
 import Octicons from '@expo/vector-icons/Octicons';
-import ProductCard from '@/components/ProductCard';
-import { getUserLocation } from '@/utils/getUserLocation';
-import React, { useEffect, useRef, useState } from 'react';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
-import { GestureHandlerRootView, ScrollView, TextInput } from 'react-native-gesture-handler';
-import { Image, Modal, Pressable, Text, ToastAndroid, View } from 'react-native';
-import { getFilters } from '@/utils/getFilters';
-import { CONSTANTS } from '@/utils/constant';
-import Slider from '@react-native-community/slider';
 import Feather from '@expo/vector-icons/Feather';
-import { useCartStore } from '@/store/cartStore';
+import { searchProduct } from '@/api';
+import PlatformLogo from '@/components/PlatformLogo';
+import ProductComparisonCard from '@/components/ProductComparisonCard';
+import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
+import { getUserLocation } from '@/utils/getUserLocation';
+import { CONSTANTS, PLATFORM_DISPLAY_MAP, PLATFORM_FAILURE_MESSAGE_MAP } from '@/utils/constant';
+import { MatchedProductGroup, PlatformSearchResult, ShopperLocation } from '@/types';
 
-interface filtersInterface {
-  categories: string[];
-  brands: string[];
-  quantities: string[];
-  priceRange: {
-    min: number;
-    max: number;
-  };
-}
+type SearchViewMode = 'compare' | 'byPlatform';
+
+/** Shown under the search box so a first-time visitor has something to tap. */
+const SUGGESTED_QUERY_LIST = ['milk', 'bread', 'eggs', 'onion', 'curd', 'banana'];
 
 const SearchScreen = () => {
+  const searchInputRef = useRef<TextInput | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [productsLimit, setProductsLimit] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const searchRef = useRef<TextInput | null>(null);
-  const [allProducts, setAllProducts] = useState<AllProductsTypes>({
-    blinkit: {
-      productList: [],
-      totalProducts: 0,
-    },
-    zepto: {
-      productList: [],
-      totalProducts: 0,
-    },
-    swiggyInstamart: {
-      productList: [],
-      totalProducts: 0,
-    },
-    bbNow: {
-      productList: [],
-      totalProducts: 0,
-    },
-  });
-  const [allFilteredProducts, setAllFilteredProducts] = useState<AllProductsTypes>({
-    blinkit: {
-      productList: [],
-      totalProducts: 0,
-    },
-    zepto: {
-      productList: [],
-      totalProducts: 0,
-    },
-    swiggyInstamart: {
-      productList: [],
-      totalProducts: 0,
-    },
-    bbNow: {
-      productList: [],
-      totalProducts: 0,
-    },
-  });
-  const [filtersData, setFiltersData] = useState<filtersInterface>({
-    categories: [],
-    brands: [],
-    quantities: [],
-    priceRange: {
-      min: 0,
-      max: 0,
-    },
-  });
-  const [filters, setFilters] = useState<filtersInterface>({
-    categories: [],
-    brands: [],
-    quantities: [],
-    priceRange: {
-      min: 0,
-      max: 0,
-    },
-  });
-
-  const { items } = useCartStore();
-
-  const handleApplyFilters = () => {
-    try {
-      if (
-        filters.categories.length === 0 &&
-        filters.brands.length === 0 &&
-        filters.priceRange.max === 0
-      ) {
-        ToastAndroid.show('Please select at least one filter', ToastAndroid.SHORT);
-        return;
-      }
-
-      const filterFunction = (productList: any[], platform: string) => {
-        const applyCatFilter = filters.categories.length > 0;
-        const applyBrandFilter = filters.brands.length > 0;
-
-        return productList.filter((product) => {
-          console.log(
-            Number(product.prices.sellingPrice),
-            Number(product.prices.sellingPrice) <= Number(filters.priceRange.max),
-          );
-          // (!applyCatFilter || filters.categories.includes(product.category || '')) &&
-          // (!applyBrandFilter || filters.brands.includes(product.brand || '')) &&
-          return Number(product.prices.sellingPrice) <= Number(filters.priceRange.max);
-        });
-      };
-      const blinkitFilter = filterFunction(allProducts.blinkit.productList, 'blinkit');
-      const zeptoFilter = filterFunction(allProducts.zepto.productList, 'zepto');
-      const swiggyFilter = filterFunction(
-        allProducts.swiggyInstamart.productList,
-        'swiggyInstamart',
-      );
-      const bbNowFilter = filterFunction(allProducts.bbNow.productList, 'bbNow');
-
-      setAllFilteredProducts({
-        blinkit: {
-          productList: blinkitFilter,
-          totalProducts: blinkitFilter.length,
-        },
-        zepto: {
-          productList: zeptoFilter,
-          totalProducts: zeptoFilter.length,
-        },
-        swiggyInstamart: {
-          productList: swiggyFilter,
-          totalProducts: swiggyFilter.length,
-        },
-        bbNow: {
-          productList: bbNowFilter,
-          totalProducts: bbNowFilter.length,
-        },
-      });
-      setIsFilterOpen(false);
-      ToastAndroid.show('Filters applied', ToastAndroid.SHORT);
-    } catch (error) {
-      console.error('Error applying filters:', error);
-      ToastAndroid.show('Something went wrong!', ToastAndroid.SHORT);
-      return;
-    }
-  };
-
-  const handleSearch = async () => {
-    try {
-      setLoading(true);
-      const location = await getUserLocation();
-      const res = await searchProduct(
-        searchQuery,
-        String(location.lat),
-        String(location.lng),
-        String(location.address.formattedAddress),
-      );
-      const values = [
-        res.data.blinkit.totalProducts,
-        res.data.bbNow.totalProducts,
-        res.data.swiggyInstamart.totalProducts,
-        res.data.zepto.totalProducts,
-      ];
-      const nonZeroValues = values.filter((val) => val > 0);
-      setProductsLimit(Math.min(...nonZeroValues));
-      setAllFilteredProducts(res.data);
-      setAllProducts(res.data);
-      // ToastAndroid.show('✅ Success', ToastAndroid.LONG);
-      const filters = getFilters(res.data);
-      setFiltersData(filters);
-      setFilters((prev) => ({
-        ...prev,
-        priceRange: { min: filters.priceRange.min, max: filters.priceRange.max },
-      }));
-    } catch (error) {
-      console.log(error);
-      ToastAndroid.show('Something went wrong!', ToastAndroid.LONG);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [viewMode, setViewMode] = useState<SearchViewMode>('compare');
+  const [checkIfLoading, setCheckIfLoading] = useState(false);
+  const [shopperLocation, setShopperLocation] = useState<ShopperLocation | null>(null);
+  const [checkIfLocationIsFallback, setCheckIfLocationIsFallback] = useState(false);
+  const [matchedProductGroupList, setMatchedProductGroupList] = useState<MatchedProductGroup[]>([]);
+  const [platformResultList, setPlatformResultList] = useState<PlatformSearchResult[]>([]);
+  const [searchErrorMessage, setSearchErrorMessage] = useState<string | null>(null);
+  const [elapsedMilliseconds, setElapsedMilliseconds] = useState<number | null>(null);
+  const [checkIfSearched, setCheckIfSearched] = useState(false);
 
   useEffect(() => {
-    if (searchRef.current) {
-      searchRef.current.blur();
-      searchRef.current.focus();
-      searchRef.current.setNativeProps({ selection: { start: 0, end: 0 } });
-      setTimeout(() => {
-        searchRef.current?.focus();
-      }, 100);
-    }
+    (async () => {
+      const resolvedLocation = await getUserLocation();
+      setShopperLocation(resolvedLocation);
+      setCheckIfLocationIsFallback(resolvedLocation.checkIfFallbackUsed);
+    })();
+    // Autofocus is a nicety on web and a keyboard-popping annoyance on a phone.
+    if (Platform.OS === 'web') searchInputRef.current?.focus();
   }, []);
 
-  return (
-    <GestureHandlerRootView style={{ backgroundColor: '#fff', flex: 1 }}>
-      <Pressable
-        onPress={() => router.push('/cart')}
-        className='bg-primary active:bg-blue-700 absolute bottom-1 left-[32%] z-10 w-[36%] flex-row items-center gap-4 text-center justify-center active:scale-95 rounded-full py-3 px-2 transition duration-150'
+  const runSearch = useCallback(
+    async (rawQuery: string) => {
+      const trimmedQuery = rawQuery.trim();
+      if (!trimmedQuery) return;
+      setCheckIfLoading(true);
+      setSearchErrorMessage(null);
+      setCheckIfSearched(true);
+      try {
+        const location = shopperLocation ?? (await getUserLocation());
+        if (!shopperLocation) setShopperLocation(location);
+
+        const apiResponse = await searchProduct(trimmedQuery, location);
+        setMatchedProductGroupList(apiResponse.data.matchedProductGroupList ?? []);
+        setPlatformResultList(apiResponse.data.platformResultList ?? []);
+        setElapsedMilliseconds(apiResponse.data.elapsedMilliseconds ?? null);
+      } catch (error: any) {
+        // Say what actually went wrong. A bare "Something went wrong" leaves the shopper — and
+        // anyone debugging — with nothing to act on.
+        setSearchErrorMessage(
+          error?.response?.data?.message ??
+            (error?.code === 'ECONNABORTED'
+              ? 'The search took too long. Please try again.'
+              : `Could not reach the server at ${CONSTANTS.serverUrl}. Is the backend running?`),
+        );
+        setMatchedProductGroupList([]);
+        setPlatformResultList([]);
+      } finally {
+        setCheckIfLoading(false);
+      }
+    },
+    [shopperLocation],
+  );
+
+  const comparableGroupList = matchedProductGroupList.filter((group) => group.platformCount > 1);
+  const singlePlatformGroupList = matchedProductGroupList.filter(
+    (group) => group.platformCount === 1,
+  );
+  const succeededPlatformList = platformResultList.filter((result) => result.checkIfSucceeded);
+
+  const renderPlatformStatusStrip = () => (
+    <View style={{ flexGrow: 0, flexShrink: 0 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6, paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' }}
       >
-        <Feather name='shopping-cart' size={25} color={CONSTANTS.colors.secondary} />
-        <View className='flex flex-col'>
-          <Text className='text-white text-center font-semibold text-xl'>View Cart</Text>
-          <Text className='text-white'>{items.length} Items</Text>
-        </View>
-      </Pressable>
-      <ScrollView style={{ flex: 1 }}>
-        <View className='mt-4 flex-row items-center border-2 rounded-xl border-gray-300 mx-auto w-[95%] bg-gray-100 text-white py-1 px-4'>
-          <Octicons
-            name='arrow-left'
-            color='#000'
-            size={24}
-            className='active:scale-105'
-            onPress={() => router.push('/')}
-          />
-          <TextInput
-            className='flex-1 ml-2 text-lg'
-            placeholder='Search your groceries'
-            placeholderTextColor='gray'
-            returnKeyType='search'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.nativeEvent.text)}
-            onSubmitEditing={handleSearch}
-            ref={searchRef}
-          />
-          <Octicons
-            name='x'
-            color='#000'
-            size={24}
-            className='active:scale-105'
-            onPress={() => setSearchQuery('')}
-          />
-        </View>
-        <View>
-          <View className='flex-row justify-between items-center mx-4 mt-4'>
-            <View>
-              <Pressable
-                onPress={() => setIsFilterOpen(true)}
-                className='flex flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1 active:bg-gray-200'
-              >
-                <FontAwesome6 name='sliders' size={16} color='#4B5563' />
-                <Text className='text-gray-600'>Filters</Text>
-              </Pressable>
-              <Modal
-                animationType='slide'
-                transparent={true}
-                visible={isFilterOpen}
-                onRequestClose={() => setIsFilterOpen(false)}
-              >
-                <Pressable className='flex-1 bg-black/60' onPress={() => setIsFilterOpen(false)}>
+        {platformResultList.map((result) => {
+          const platformDisplay = PLATFORM_DISPLAY_MAP[result.platformId];
+          // A platform can answer perfectly well and still have nothing for this search. That is
+          // neither success nor failure, and showing it as a green "0" reads as a broken column —
+          // so it gets its own neutral chip that says what actually happened.
+          const checkIfEmptyResult = result.checkIfSucceeded && result.totalProducts === 0;
+          return (
+            <View
+              key={result.platformId}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                paddingHorizontal: 9,
+                paddingVertical: 6,
+                borderRadius: 14,
+              backgroundColor: checkIfEmptyResult
+                ? '#f3f4f6'
+                : result.checkIfSucceeded
+                  ? '#e8f7ef'
+                  : '#fdecec',
+              borderWidth: 1,
+              borderColor: checkIfEmptyResult
+                ? '#e0e2e6'
+                : result.checkIfSucceeded
+                  ? '#bfe6d0'
+                  : '#f5c6c6',
+            }}
+          >
+            <View
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: checkIfEmptyResult
+                  ? CONSTANTS.colors.muted
+                  : result.checkIfSucceeded
+                    ? CONSTANTS.colors.success
+                    : CONSTANTS.colors.danger,
+              }}
+            />
+            <Text style={{ fontSize: 11, fontWeight: '600' }}>
+              {platformDisplay?.displayName ?? result.platformDisplayName}
+            </Text>
+            <Text style={{ fontSize: 11, color: CONSTANTS.colors.muted }}>
+              {checkIfEmptyResult
+                ? 'No matches'
+                : result.checkIfSucceeded
+                  ? `${result.totalProducts}`
+                  : (PLATFORM_FAILURE_MESSAGE_MAP[result.failureReason ?? ''] ?? 'Unavailable')}
+            </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  const renderCompareView = () => {
+    if (comparableGroupList.length === 0 && singlePlatformGroupList.length === 0) return null;
+    return (
+      <FlatList
+        data={[...comparableGroupList, ...singlePlatformGroupList]}
+        keyExtractor={(group) => group.groupKey}
+        renderItem={({ item }) => <ProductComparisonCard group={item} />}
+        contentContainerStyle={{ padding: 12, paddingBottom: 100 }}
+        ListHeaderComponent={
+          <Text style={{ fontSize: 12, color: CONSTANTS.colors.muted, marginBottom: 10 }}>
+            {comparableGroupList.length} product
+            {comparableGroupList.length === 1 ? '' : 's'} available on more than one platform
+            {singlePlatformGroupList.length > 0
+              ? `, plus ${singlePlatformGroupList.length} found on only one`
+              : ''}
+            .
+          </Text>
+        }
+      />
+    );
+  };
+
+  const renderByPlatformView = () => (
+    <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 100 }}>
+      {platformResultList.map((result) => {
+        const platformDisplay = PLATFORM_DISPLAY_MAP[result.platformId];
+        return (
+          <View key={result.platformId} style={{ marginBottom: 18 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <PlatformLogo
+                platformId={result.platformId}
+                platformDisplayName={result.platformDisplayName}
+                width={74}
+                height={30}
+              />
+              <Text style={{ fontSize: 11, color: CONSTANTS.colors.muted }}>
+                {result.checkIfSucceeded && result.totalProducts === 0
+                  ? 'No matching products at this store'
+                  : result.checkIfSucceeded
+                  ? `${result.totalProducts} items${result.storeDeliveryEtaInMinutes ? ` · ${result.storeDeliveryEtaInMinutes} min` : ''}${result.checkIfServedFromCache ? ' · cached' : ''}`
+                  : (PLATFORM_FAILURE_MESSAGE_MAP[result.failureReason ?? ''] ??
+                    result.failureDetail ??
+                    'Unavailable')}
+              </Text>
+            </View>
+
+            {result.productList.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                {result.productList.map((product) => (
                   <Pressable
-                    onPress={(e) => e.stopPropagation()}
-                    className='bg-white absolute bottom-0 w-full rounded-t-3xl p-6'
+                    key={product.productKey}
+                    onPress={() => product.productWebUrl && Linking.openURL(product.productWebUrl)}
+                    style={{
+                      width: 132,
+                      backgroundColor: CONSTANTS.colors.gray,
+                      borderRadius: 10,
+                      padding: 8,
+                      // A sold-out tile is dimmed AND labelled; colour alone would be invisible to
+                      // a colour-blind shopper and to anyone scanning quickly.
+                      opacity: product.checkIfInStock ? 1 : 0.5,
+                    }}
                   >
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                      <View className='flex-row justify-between items-center'>
-                        <View className='flex-row items-center gap-3'>
-                          <FontAwesome6 name='sliders' size={16} color='#4B5563' />
-                          <Text className='text-xl font-bold'>Filters</Text>
-                        </View>
-                        <Pressable onPress={() => setIsFilterOpen(false)}>
-                          <Octicons name='x' size={24} color='#000' />
-                        </Pressable>
-                      </View>
-                      <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                        <View className='w-full mt-4'>
-                          <Text className='text-lg font-semibold mb-2'>Categories</Text>
-                          <View className='flex-row flex-wrap gap-1'>
-                            {filtersData.categories.map((category, index) => (
-                              <Pressable
-                                key={index}
-                                className={`${filters.categories.includes(category) ? 'bg-primary' : 'bg-gray-200'} transition duration-100 active:scale-90 rounded-full px-3 py-1 mb-1`}
-                                onPress={() => {
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    categories: filters.categories.includes(category)
-                                      ? prev.categories.filter((c) => c !== category)
-                                      : [...prev.categories, category],
-                                  }));
-                                }}
-                              >
-                                <Text
-                                  className={`${filters.categories.includes(category) ? 'text-white' : 'text-gray-700'}`}
-                                >
-                                  {category}
-                                </Text>
-                              </Pressable>
-                            ))}
-                          </View>
-                        </View>
-
-                        <View className='w-full mt-4'>
-                          <Text className='text-lg font-semibold mb-2'>Brands</Text>
-                          <View className='flex-row flex-wrap gap-1'>
-                            {filtersData.brands.map((brand, index) => (
-                              <Pressable
-                                key={index}
-                                className={`${filters.brands.includes(brand) ? 'bg-primary' : 'bg-gray-200'} transition duration-100 active:scale-90 rounded-full px-3 py-1 mb-1`}
-                                onPress={() => {
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    brands: filters.brands.includes(brand)
-                                      ? prev.brands.filter((b) => b !== brand)
-                                      : [...prev.brands, brand],
-                                  }));
-                                }}
-                              >
-                                <Text
-                                  className={`${filters.brands.includes(brand) ? 'text-white' : 'text-gray-700'}`}
-                                >
-                                  {brand}
-                                </Text>
-                              </Pressable>
-                            ))}
-                          </View>
-                        </View>
-
-                        <View className='w-full mt-4'>
-                          <Text className='text-lg font-semibold mb-2'>Price Range</Text>
-                          <View className='flex-row items-center justify-center'>
-                            <Text className='text-gray-700'>₹{filtersData.priceRange.min}</Text>
-                            <Slider
-                              style={{ width: '84%', height: 40 }}
-                              minimumValue={filtersData.priceRange.min}
-                              maximumValue={filtersData.priceRange.max}
-                              step={
-                                filtersData.priceRange.max - filtersData.priceRange.min > 1000
-                                  ? 100
-                                  : 10
-                              }
-                              thumbTintColor={CONSTANTS.colors.primary}
-                              value={filters.priceRange.max}
-                              minimumTrackTintColor={CONSTANTS.colors.primary}
-                              onValueChange={(val) =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  priceRange: { ...prev.priceRange, max: val },
-                                }))
-                              }
-                            />
-                            <Text className='text-gray-700'>₹{filtersData.priceRange.max}</Text>
-                          </View>
-                          <Text className='ml-1'>Max price : ₹{filters.priceRange.max}</Text>
-                        </View>
-                      </View>
-                      <Pressable
-                        className='bg-primary active:bg-blue-700 active:scale-95 rounded-xl w-full mt-4 mx-auto py-3 px-2 transition duration-150'
-                        onPress={handleApplyFilters}
-                      >
-                        <Text className='text-white text-center font-semibold'>Apply Filter</Text>
-                      </Pressable>
-                    </ScrollView>
+                    <Image
+                      source={{ uri: product.imageUrlList[0] }}
+                      style={{ width: '100%', height: 92, borderRadius: 8 }}
+                      resizeMode='contain'
+                    />
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: CONSTANTS.colors.primary, marginTop: 4 }}>
+                      {product.packSizeLabel ?? ''}
+                    </Text>
+                    <Text style={{ fontSize: 12, lineHeight: 16 }} numberOfLines={2}>
+                      {product.productName}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800' }}>
+                        ₹{product.pricing.sellingPriceInRupees ?? '—'}
+                      </Text>
+                      {product.pricing.maximumRetailPriceInRupees !== null &&
+                        product.pricing.sellingPriceInRupees !== null &&
+                        product.pricing.maximumRetailPriceInRupees > product.pricing.sellingPriceInRupees && (
+                          <Text
+                            style={{ fontSize: 10, color: CONSTANTS.colors.muted, textDecorationLine: 'line-through' }}
+                          >
+                            ₹{product.pricing.maximumRetailPriceInRupees}
+                          </Text>
+                        )}
+                    </View>
+                    {product.checkIfInStock ? (
+                      product.deliveryEtaInMinutes !== null && (
+                        <Text style={{ fontSize: 10, color: CONSTANTS.colors.success, marginTop: 2 }}>
+                          {product.deliveryEtaInMinutes} min
+                        </Text>
+                      )
+                    ) : (
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: CONSTANTS.colors.danger, marginTop: 2 }}>
+                        OUT OF STOCK
+                      </Text>
+                    )}
                   </Pressable>
-                </Pressable>
-              </Modal>
-            </View>
-            <View className='flex-row items-center gap-2 border-2 border-gray-300 rounded-lg p-1 active:bg-gray-200'>
-              <Text className='text-gray-600'>Sort</Text>
-              <Octicons name='sort-asc' size={16} color='#4B5563' />
-            </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ fontSize: 12, color: CONSTANTS.colors.muted }}>
+                {result.failureDetail ?? 'No products returned for this search.'}
+              </Text>
+            )}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      {/* Search bar */}
+      <View style={{ backgroundColor: CONSTANTS.colors.primary, paddingHorizontal: 12, paddingBottom: 12, paddingTop: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable onPress={() => router.push('/')} hitSlop={10}>
+            <Octicons name='arrow-left' color='#fff' size={22} />
+          </Pressable>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#fff',
+              borderRadius: 10,
+              paddingHorizontal: 10,
+            }}
+          >
+            <Octicons name='search' color='#000' size={18} />
+            <TextInput
+              ref={searchInputRef}
+              style={{ flex: 1, marginLeft: 8, paddingVertical: 10, fontSize: 15, outlineStyle: 'none' } as any}
+              placeholder='Search groceries to compare prices'
+              placeholderTextColor='#9ca3af'
+              returnKeyType='search'
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={() => runSearch(searchQuery)}
+              // `onSubmitEditing` does not fire for a hardware Enter on react-native-web, so the
+              // key is handled explicitly too — otherwise pressing Enter on the web build silently
+              // did nothing and only the Search button worked.
+              onKeyPress={(event: any) => {
+                if (event?.nativeEvent?.key === 'Enter') runSearch(searchQuery);
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={10}>
+                <Octicons name='x' color='#000' size={18} />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            onPress={() => runSearch(searchQuery)}
+            style={{ backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }}
+          >
+            <Text style={{ color: CONSTANTS.colors.primary, fontWeight: '800' }}>Search</Text>
+          </Pressable>
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Feather name='map-pin' size={12} color='#fff' />
+            <Text style={{ color: '#fff', fontSize: 11, flex: 1 }} numberOfLines={1}>
+              {shopperLocation
+                ? `${shopperLocation.addressText}${shopperLocation.pincode ? ` · ${shopperLocation.pincode}` : ''}`
+                : 'Finding your location…'}
+            </Text>
+          </View>
+          {checkIfLocationIsFallback && (
+            <Text style={{ color: '#dbeafe', fontSize: 10, marginLeft: 17, marginTop: 1 }}>
+              Default location — allow location access for prices near you
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {/* View toggle */}
+      {checkIfSearched && !checkIfLoading && platformResultList.length > 0 && (
+        <View style={{ flexDirection: 'row', gap: 8, padding: 12, paddingBottom: 6 }}>
+          {(['compare', 'byPlatform'] as SearchViewMode[]).map((mode) => (
+            <Pressable
+              key={mode}
+              onPress={() => setViewMode(mode)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 18,
+                backgroundColor: viewMode === mode ? CONSTANTS.colors.primary : '#eef0f3',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '700',
+                  color: viewMode === mode ? '#fff' : '#374151',
+                }}
+              >
+                {mode === 'compare' ? 'Compare prices' : 'By platform'}
+              </Text>
+            </Pressable>
+          ))}
+          {elapsedMilliseconds !== null && (
+            <Text style={{ fontSize: 11, color: CONSTANTS.colors.muted, alignSelf: 'center' }}>
+              {succeededPlatformList.length}/{platformResultList.length} platforms ·{' '}
+              {(elapsedMilliseconds / 1000).toFixed(1)}s
+            </Text>
+          )}
+        </View>
+      )}
+
+      {checkIfSearched && !checkIfLoading && platformResultList.length > 0 && renderPlatformStatusStrip()}
+
+      {/* Body */}
+      {checkIfLoading ? (
+        <View style={{ flex: 1 }}>
+          <View style={{ alignItems: 'center', paddingVertical: 14, gap: 6 }}>
+            <ActivityIndicator color={CONSTANTS.colors.primary} />
+            <Text style={{ fontSize: 12, color: CONSTANTS.colors.muted }}>
+              Checking all platforms for {shopperLocation?.addressText ?? 'your location'}…
+            </Text>
+          </View>
+          <ProductSkeletonGrid />
+        </View>
+      ) : searchErrorMessage ? (
+        <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
+          <Feather name='alert-circle' size={26} color={CONSTANTS.colors.danger} />
+          <Text style={{ textAlign: 'center', color: CONSTANTS.colors.danger, fontWeight: '600' }}>
+            {searchErrorMessage}
+          </Text>
+        </View>
+      ) : !checkIfSearched ? (
+        <View style={{ padding: 24, gap: 14 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700' }}>Compare a grocery across platforms</Text>
+          <Text style={{ fontSize: 12, color: CONSTANTS.colors.muted }}>
+            One search checks Blinkit, Zepto, Swiggy Instamart, BB Now, Amazon Now and Flipkart
+            Minutes for your location, then groups the same product so you can see who is cheapest.
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {SUGGESTED_QUERY_LIST.map((suggestedQuery) => (
+              <Pressable
+                key={suggestedQuery}
+                onPress={() => {
+                  setSearchQuery(suggestedQuery);
+                  runSearch(suggestedQuery);
+                }}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 18,
+                  backgroundColor: '#eef0ff',
+                }}
+              >
+                <Text style={{ color: CONSTANTS.colors.primary, fontWeight: '600' }}>
+                  {suggestedQuery}
+                </Text>
+              </Pressable>
+            ))}
           </View>
         </View>
-        <View className='flex-row justify-between items-center mx-4 my-2'></View>
-        {loading ? (
-          <ProductSkeletonGrid />
-        ) : (
-          <ScrollView
-            horizontal
-            contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 10, gap: 10 }}
-          >
-            {allFilteredProducts?.blinkit.totalProducts ? (
-              <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-2'>
-                  <Image
-                    source={require('../../assets/images/blinkit-logo.png')}
-                    style={{
-                      width: 96,
-                      height: 48,
-                      borderRadius: 8,
-                      backgroundColor: '#FACC15',
-                      padding: 0,
-                    }}
-                    resizeMode='contain'
-                  />
-                </View>
-                {allProducts?.blinkit?.productList
-                  .slice(0, productsLimit)
-                  .map((product, index) => (
-                    <ProductCard
-                      key={product.id || index}
-                      id={product.id || ''}
-                      name={product.name || ''}
-                      images={product.images || []}
-                      prices={product.prices || {}}
-                      eta={product.eta || 'Earliest'}
-                      quantity={product.quantity || ''}
-                      stockAvailability={product.stockAvailability || false}
-                      brand={product.brand || ''}
-                      category={product.category || ''}
-                      link={product.webLink || ''}
-                      platform={(product.platform as string) || 'Blinkit'}
-                    />
-                  ))}
-              </View>
-            ) : null}
-
-            {allFilteredProducts?.zepto.totalProducts ? (
-              <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-2'>
-                  <Image
-                    source={require('../../assets/images/zepto-logo.png')}
-                    style={{
-                      width: 90,
-                      height: 48,
-                      borderRadius: 8,
-                      backgroundColor: '#8B5CF6' + '60',
-                    }}
-                    resizeMode='contain'
-                  />
-                </View>
-                {allProducts?.zepto?.productList
-                  .slice(0, productsLimit)
-                  .map((product, index) => (
-                    <ProductCard
-                      key={index}
-                      id={product.id || ''}
-                      name={product.name || ''}
-                      images={product.images || []}
-                      prices={product.prices || {}}
-                      eta={product.eta || 'Earliest'}
-                      quantity={product.quantity || ''}
-                      stockAvailability={product.stockAvailability || false}
-                      brand={product.brand || ''}
-                      category={product.category || ''}
-                      link={product.webLink || ''}
-                      platform={(product.platform as string) || 'Zepto'}
-                    />
-                  ))}
-              </View>
-            ) : null}
-
-            {allFilteredProducts?.swiggyInstamart.totalProducts ? (
-              <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-2'>
-                  <Image
-                    source={require('../../assets/images/instamart-logo2.png')}
-                    style={{
-                      width: 96,
-                      height: 48,
-                      borderRadius: 8,
-                      backgroundColor: '#FF6B35' + '60',
-                    }}
-                    resizeMode='contain'
-                  />
-                </View>
-                {allProducts?.swiggyInstamart?.productList
-                  .slice(0, productsLimit)
-                  .map((product, index) => (
-                    <ProductCard
-                      key={index}
-                      id={product.id || ''}
-                      name={product.name || ''}
-                      images={product.images || []}
-                      prices={product.prices || {}}
-                      eta={product.eta || 'Earliest'}
-                      quantity={product.quantity || ''}
-                      stockAvailability={product.stockAvailability || false}
-                      brand={product.brand || ''}
-                      category={product.category || ''}
-                      link={product.webLink || ''}
-                      platform={(product.platform as string) || 'Swiggy Instamart'}
-                    />
-                  ))}
-              </View>
-            ) : null}
-
-            {allFilteredProducts?.bbNow.totalProducts ? (
-              <View style={{ alignItems: 'center', gap: 10 }}>
-                <View className='mb-2'>
-                  <Image
-                    source={require('../../assets/images/bbnow-logo.png')}
-                    style={{
-                      width: 96,
-                      height: 48,
-                      borderRadius: 8,
-                      backgroundColor: '#66f711' + '60',
-                    }}
-                    resizeMode='contain'
-                  />
-                </View>
-                {allProducts?.bbNow?.productList
-                  .slice(0, productsLimit)
-                  .map((product, index) => (
-                    <ProductCard
-                      key={index}
-                      id={product.id || ''}
-                      name={product.name || ''}
-                      images={product.images || []}
-                      prices={product.prices || {}}
-                      eta={product.eta || 'Earliest'}
-                      quantity={product.quantity || ''}
-                      stockAvailability={product.stockAvailability || false}
-                      brand={product.brand || ''}
-                      category={product.category || ''}
-                      link={product.webLink || ''}
-                      platform={(product.platform as string) || 'BB Now'}
-                    />
-                  ))}
-              </View>
-            ) : null}
-          </ScrollView>
-        )}
-      </ScrollView>
-    </GestureHandlerRootView>
+      ) : matchedProductGroupList.length === 0 ? (
+        <View style={{ padding: 24, alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontWeight: '700' }}>No products found for “{searchQuery}”.</Text>
+          <Text style={{ fontSize: 12, color: CONSTANTS.colors.muted, textAlign: 'center' }}>
+            Every platform answered but none carried this item at {shopperLocation?.addressText}.
+          </Text>
+        </View>
+      ) : viewMode === 'compare' ? (
+        renderCompareView()
+      ) : (
+        renderByPlatformView()
+      )}
+    </View>
   );
 };
 

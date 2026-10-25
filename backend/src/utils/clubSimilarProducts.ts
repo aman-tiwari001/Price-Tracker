@@ -64,6 +64,7 @@ export const clubSimilarProducts = (...platforms: IProduct[][]): MergedProduct[]
     if (!found) {
       // Create a new merged product entry
       mergedProducts.push({
+        id: product.id,
         name: product.name,
         description: product.description,
         images: product.images,
@@ -76,7 +77,6 @@ export const clubSimilarProducts = (...platforms: IProduct[][]): MergedProduct[]
         category: product.category,
         ratings: product.ratings,
         reviews: product.reviews,
-        productLink: product.productLink,
       });
     }
   });

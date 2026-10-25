@@ -1,60 +1,73 @@
 import { create } from 'zustand';
-import { IProduct } from '@/types';
+import { CartProduct } from '@/types';
 
-interface CartItem {
-  product: IProduct;
+interface CartLine {
+  product: CartProduct;
   quantity: number;
 }
 
 interface CartStore {
-  items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: string) => void;
+  items: CartLine[];
+  addItem: (product: CartProduct) => void;
+  removeItem: (productKey: string) => void;
   clearCart: () => void;
-  incrementQuantity: (id: string) => void;
-  decrementQuantity: (id: string) => void;
+  incrementQuantity: (productKey: string) => void;
+  decrementQuantity: (productKey: string) => void;
 }
 
+/**
+ * A per-platform shopping list held in memory.
+ *
+ * It is a LIST, not a real cart: this app cannot place orders on a shopper's behalf, so adding an
+ * item records the choice and the deep link, and checkout happens on the platform's own site.
+ *
+ * NOT persisted, and that is a known gap rather than an oversight: a browser refresh or an app
+ * restart empties the list. `zustand/middleware`'s `persist` over `AsyncStorage` was tried on
+ * 2026-10-20 and backed out — Expo Router renders every route once in Node to produce static HTML,
+ * AsyncStorage's web build is CommonJS, and Metro bundles the dependency even when the `require`
+ * sits inside a function, so the whole app served "require is not defined in ES module scope"
+ * instead of the cart. Doing it properly needs a platform-split module (`cartStorage.web.ts` and
+ * `cartStorage.native.ts`) so the web bundle never references AsyncStorage at all.
+ */
 export const useCartStore = create<CartStore>((set) => ({
   items: [],
 
-  addItem: (item) =>
+  addItem: (product) =>
     set((state) => {
-      const existingItem = state.items.find((i) => i.product.id === item.product.id);
-
-      if (existingItem) {
-        return {
-          items: state.items.map((i) =>
-            i.product.id === item.product.id ? { ...i, quantity: i.quantity + 1 } : i,
-          ),
-        };
-      } else {
-        return {
-          items: [...state.items, { ...item, quantity: 1 }],
-        };
-      }
+      const existingLine = state.items.find((line) => line.product.productKey === product.productKey);
+      return existingLine
+        ? {
+            items: state.items.map((line) =>
+              line.product.productKey === product.productKey
+                ? { ...line, quantity: line.quantity + 1 }
+                : line,
+            ),
+          }
+        : { items: [...state.items, { product, quantity: 1 }] };
     }),
 
-  removeItem: (id) =>
+  removeItem: (productKey) =>
     set((state) => ({
-      items: state.items.filter((item) => item.product.id !== id),
+      items: state.items.filter((line) => line.product.productKey !== productKey),
     })),
 
   clearCart: () => set({ items: [] }),
 
-  incrementQuantity: (id) =>
+  incrementQuantity: (productKey) =>
     set((state) => ({
-      items: state.items.map((item) =>
-        item.product.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      items: state.items.map((line) =>
+        line.product.productKey === productKey ? { ...line, quantity: line.quantity + 1 } : line,
       ),
     })),
 
-  decrementQuantity: (id) =>
+  decrementQuantity: (productKey) =>
     set((state) => ({
       items: state.items
-        .map((item) =>
-          item.product.id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item,
+        .map((line) =>
+          line.product.productKey === productKey
+            ? { ...line, quantity: line.quantity - 1 }
+            : line,
         )
-        .filter((item) => item.quantity > 0),
+        .filter((line) => line.quantity > 0),
     })),
 }));
