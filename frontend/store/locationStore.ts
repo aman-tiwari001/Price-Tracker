@@ -1,30 +1,24 @@
 import { create } from 'zustand';
+import { ShopperLocation } from '@/types';
 
-interface Location {
-  lat: number;
-  lng: number;
-  address: any;
+/**
+ * The shopper's delivery point, shared by the home and search screens.
+ *
+ * Holds the same `ShopperLocation` the API takes, so no screen has to reshape it — the previous
+ * store kept a loose `address: any` and the home screen read `address.name`, `address.district`,
+ * which rendered "null, null, null" whenever reverse geocoding returned a partial result.
+ */
+interface ShopperLocationStore {
+  shopperLocation: ShopperLocation | null;
+  checkIfFallbackUsed: boolean;
+  updateShopperLocation: (location: ShopperLocation, checkIfFallbackUsed: boolean) => void;
+  resetShopperLocation: () => void;
 }
 
-interface LocationStore {
-  location: Location | null;
-  getLocation: () => Location | null;
-  updateLocation: (newLocation: Location) => void;
-  resetLocation: () => void;
-}
-
-export const useLocationStore = create<LocationStore>((set, get) => ({
-  location: null,
-  
-  getLocation: () => {
-    return get().location;
-  },
-  
-  updateLocation: (newLocation) => {
-    set({ location: newLocation });
-  },
-  
-  resetLocation: () => {
-    set({ location: null });
-  }
+export const useLocationStore = create<ShopperLocationStore>((set) => ({
+  shopperLocation: null,
+  checkIfFallbackUsed: false,
+  updateShopperLocation: (location, checkIfFallbackUsed) =>
+    set({ shopperLocation: location, checkIfFallbackUsed }),
+  resetShopperLocation: () => set({ shopperLocation: null, checkIfFallbackUsed: false }),
 }));

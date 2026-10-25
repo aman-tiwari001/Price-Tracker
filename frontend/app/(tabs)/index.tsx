@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const searchRef = useRef<TextInput>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const { location, updateLocation } = useLocationStore();
+  const { shopperLocation, checkIfFallbackUsed, updateShopperLocation } = useLocationStore();
 
   const onShare = async () => {
     try {
@@ -51,12 +51,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     (async () => {
-      const res = await getUserLocation();
-      updateLocation({
-        lat: res.lat,
-        lng: res.lng,
-        address: res.address,
-      });
+      const resolvedLocation = await getUserLocation();
+      updateShopperLocation(resolvedLocation, resolvedLocation.checkIfFallbackUsed);
     })();
   }, []);
 
@@ -66,14 +62,10 @@ export default function HomeScreen() {
         <View className='bg-primary p-4 pb-7'>
           <View className='flex flex-row justify-start pb-2 text-white gap-3'>
             <FontAwesome6 name='location-dot' size={20} color={CONSTANTS.colors.secondary} />
-            <Text className='text-xl text-secondary'>
-              {location?.address
-                ? location.address.name +
-                  ', ' +
-                  location.address.district +
-                  ', ' +
-                  location.address.city
-                : 'Your Location'}
+            <Text className='text-xl text-secondary' numberOfLines={1}>
+              {shopperLocation
+                ? `${shopperLocation.addressText}${shopperLocation.pincode ? ` · ${shopperLocation.pincode}` : ''}${checkIfFallbackUsed ? ' (default)' : ''}`
+                : 'Finding your location…'}
             </Text>
           </View>
           <View className='mt-4 w-full flex-row items-center rounded-xl bg-gray-100 px-4 py-4'>
