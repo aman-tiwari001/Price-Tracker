@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.amantiwari.pricetracker",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo2.png",
         "backgroundColor": "#ffffff"
@@ -38,6 +39,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5668412f-b07c-4b17-887e-e5f52edef10f"
+      }
     }
   }
 }
