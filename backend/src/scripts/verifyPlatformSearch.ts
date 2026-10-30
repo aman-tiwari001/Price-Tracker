@@ -19,7 +19,6 @@ import { SearchLocation } from '../platforms/types';
 import { closeHeadlessBrowser, warmUpHeadlessBrowser } from '../services/headlessBrowserPool';
 import { shutdownImpersonationClients } from '../services/httpImpersonationClient';
 import { searchAcrossPlatforms } from '../services/productSearchService';
-import redis from '../config/redis';
 
 const [, , pincodeArgument, latitudeArgument, longitudeArgument, queryArgument, addressArgument] =
   process.argv;
@@ -51,9 +50,7 @@ const run = async (): Promise<void> => {
 
   const searchResponse = await searchAcrossPlatforms(searchQuery, location);
 
-  console.log(
-    'PLATFORM             STATUS   PRODUCTS  TIME     CACHE  DETAIL',
-  );
+  console.log('PLATFORM             STATUS   PRODUCTS  TIME     CACHE  DETAIL');
   console.log('-'.repeat(100));
   searchResponse.platformResultList.forEach((platformResult) => {
     const statusLabel = platformResult.checkIfSucceeded ? 'OK     ' : 'FAILED ';
@@ -70,7 +67,9 @@ const run = async (): Promise<void> => {
   searchResponse.platformResultList
     .filter((platformResult) => platformResult.totalProducts > 0)
     .forEach((platformResult) => {
-      console.log(`--- ${platformResult.platformDisplayName} (store ETA: ${platformResult.storeDeliveryEtaInMinutes ?? 'n/a'} min) ---`);
+      console.log(
+        `--- ${platformResult.platformDisplayName} (store ETA: ${platformResult.storeDeliveryEtaInMinutes ?? 'n/a'} min) ---`,
+      );
       platformResult.productList.slice(0, 4).forEach((product, index) => {
         const { pricing } = product;
         console.log(
@@ -79,7 +78,9 @@ const run = async (): Promise<void> => {
       });
       const unusableCount = countUnusableProducts(platformResult.productList);
       unusableProductTotal += unusableCount;
-      const imagelessCount = platformResult.productList.filter((p) => p.imageUrlList.length === 0).length;
+      const imagelessCount = platformResult.productList.filter(
+        (p) => p.imageUrlList.length === 0,
+      ).length;
       console.log(
         `  quality: ${platformResult.totalProducts} rows, ${unusableCount} unusable (no name or no price), ${imagelessCount} without an image\n`,
       );
@@ -126,5 +127,4 @@ run()
   })
   .finally(async () => {
     await Promise.allSettled([shutdownImpersonationClients(), closeHeadlessBrowser()]);
-    redis.disconnect();
   });

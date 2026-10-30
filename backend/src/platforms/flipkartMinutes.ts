@@ -128,115 +128,122 @@ const bindDeliveryAddress = async (
   page: BrowserPage,
   location: SearchLocation,
 ): Promise<string | null> => {
-      const pincodeText = location.pincode ?? location.addressText;
-      if (!pincodeText) {
-        throw new Error('Flipkart Minutes needs a pincode or address to bind a store');
+  const pincodeText = location.pincode ?? location.addressText;
+  if (!pincodeText) {
+    throw new Error('Flipkart Minutes needs a pincode or address to bind a store');
+  }
+
+  const checkIfAddressInputRendered = await waitForPageCondition(
+    page,
+    () =>
+      document.querySelector('input[placeholder*="pin code" i], input[placeholder*="area" i]') !==
+      null,
+    12000,
+  );
+  if (!checkIfAddressInputRendered) {
+    throw new Error('Flipkart Minutes storefront did not render its address input');
+  }
+
+  await page.evaluate((addressText) => {
+    const addressInput = document.querySelector<HTMLInputElement>(
+      'input[placeholder*="pin code" i], input[placeholder*="area" i]',
+    );
+    if (!addressInput) return;
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )?.set;
+    nativeValueSetter?.call(addressInput, addressText);
+    addressInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }, pincodeText);
+
+  // Wait for the autocomplete list to actually render rather than assuming 4 s is enough.
+  const checkIfSuggestionRendered = await waitForPageCondition(
+    page,
+    () =>
+      [...document.querySelectorAll('li,div')].some((element) => {
+        const rowText = ((element as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim();
+        return (
+          (element as HTMLElement).offsetParent !== null &&
+          rowText.length > 25 &&
+          rowText.length < 120 &&
+          /india$/i.test(rowText)
+        );
+      }),
+    12000,
+  );
+  if (!checkIfSuggestionRendered) {
+    throw new Error(`Flipkart Minutes returned no address suggestion for ${pincodeText}`);
+  }
+
+  // Pick the first suggestion that reads like a full address rather than a bare pincode.
+  const clickedSuggestionText = await page.evaluate(() => {
+    const suggestionRow = [...document.querySelectorAll('li,div')].find((element) => {
+      if ((element as HTMLElement).offsetParent === null || !(element as HTMLElement).innerText) {
+        return false;
       }
-
-      await waitForPageCondition(
-        page,
-        () =>
-          document.querySelector('input[placeholder*="pin code" i], input[placeholder*="area" i]') !==
-          null,
-        12000,
+      const rowText = (element as HTMLElement).innerText.replace(/\s+/g, ' ').trim();
+      return (
+        rowText.length > 25 &&
+        rowText.length < 120 &&
+        /india$/i.test(rowText) &&
+        element.querySelectorAll('li,div').length <= 3
       );
+    });
+    (suggestionRow as HTMLElement | undefined)?.click();
+    // The row's text is FLIPKART's resolution of the pincode we typed, so it is evidence about
+    // where the store is rather than a restatement of what we asked for. That distinction is
+    // the whole point of verifying: if its autocomplete resolved 122003 to a Bengaluru address,
+    // the location gate has to be able to see that.
+    return suggestionRow
+      ? ((suggestionRow as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim()
+      : null;
+  });
 
-      await page.evaluate((addressText) => {
-        const addressInput = document.querySelector<HTMLInputElement>(
-          'input[placeholder*="pin code" i], input[placeholder*="area" i]',
-        );
-        if (!addressInput) return;
-        const nativeValueSetter = Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
-          'value',
-        )?.set;
-        nativeValueSetter?.call(addressInput, addressText);
-        addressInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }, pincodeText);
+  const checkIfConfirmRendered = await waitForPageCondition(
+    page,
+    () =>
+      [...document.querySelectorAll('*')].some(
+        (element) =>
+          (element as HTMLElement).offsetParent !== null &&
+          element.children.length === 0 &&
+          /^confirm$/i.test((element.textContent ?? '').trim()),
+      ),
+    12000,
+  );
+  if (!checkIfConfirmRendered) {
+    throw new Error('Flipkart Minutes address sheet did not render its Confirm control');
+  }
 
-      // Wait for the autocomplete list to actually render rather than assuming 4 s is enough.
-      await waitForPageCondition(
-        page,
-        () =>
-          [...document.querySelectorAll('li,div')].some((element) => {
-            const rowText = ((element as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim();
-            return (
-              (element as HTMLElement).offsetParent !== null &&
-              rowText.length > 25 &&
-              rowText.length < 120 &&
-              /india$/i.test(rowText)
-            );
-          }),
-        12000,
-      );
+  // The commit control is a <div> reading "Confirm". Click the leaf and then walk up a few
+  // ancestors, because the click handler often sits on a wrapper rather than the text.
+  const checkIfConfirmClicked = await page.evaluate(() => {
+    const confirmLeaf = [...document.querySelectorAll('*')].find(
+      (element) =>
+        (element as HTMLElement).offsetParent !== null &&
+        element.children.length === 0 &&
+        /^confirm$/i.test((element.textContent ?? '').trim()),
+    );
+    let clickTarget = confirmLeaf as HTMLElement | null | undefined;
+    for (let depth = 0; depth < 4 && clickTarget?.parentElement; depth += 1) {
+      clickTarget.click();
+      clickTarget = clickTarget.parentElement;
+      clickTarget.click();
+    }
+    return confirmLeaf !== null;
+  });
 
-      // Pick the first suggestion that reads like a full address rather than a bare pincode.
-      const clickedSuggestionText = await page.evaluate(() => {
-        const suggestionRow = [...document.querySelectorAll('li,div')].find((element) => {
-          if ((element as HTMLElement).offsetParent === null || !(element as HTMLElement).innerText) {
-            return false;
-          }
-          const rowText = (element as HTMLElement).innerText.replace(/\s+/g, ' ').trim();
-          return (
-            rowText.length > 25 &&
-            rowText.length < 120 &&
-            /india$/i.test(rowText) &&
-            element.querySelectorAll('li,div').length <= 3
-          );
-        });
-        (suggestionRow as HTMLElement | undefined)?.click();
-        // The row's text is FLIPKART's resolution of the pincode we typed, so it is evidence about
-        // where the store is rather than a restatement of what we asked for. That distinction is
-        // the whole point of verifying: if its autocomplete resolved 122003 to a Bengaluru address,
-        // the location gate has to be able to see that.
-        return suggestionRow
-          ? ((suggestionRow as HTMLElement).innerText ?? '').replace(/\s+/g, ' ').trim()
-          : null;
-      });
+  // The store is bound once the sheet closes and the site's own search box is on the page.
+  await waitForPageCondition(
+    page,
+    () => document.querySelector(SEARCH_BOX_SELECTOR) !== null,
+    15000,
+  );
 
-      await waitForPageCondition(
-        page,
-        () =>
-          [...document.querySelectorAll('*')].some(
-            (element) =>
-              (element as HTMLElement).offsetParent !== null &&
-              element.children.length === 0 &&
-              /^confirm$/i.test((element.textContent ?? '').trim()),
-          ),
-        12000,
-      );
-
-      // The commit control is a <div> reading "Confirm". Click the leaf and then walk up a few
-      // ancestors, because the click handler often sits on a wrapper rather than the text.
-      const checkIfConfirmClicked = await page.evaluate(() => {
-        const confirmLeaf = [...document.querySelectorAll('*')].find(
-          (element) =>
-            (element as HTMLElement).offsetParent !== null &&
-            element.children.length === 0 &&
-            /^confirm$/i.test((element.textContent ?? '').trim()),
-        );
-        let clickTarget = confirmLeaf as HTMLElement | null | undefined;
-        for (let depth = 0; depth < 4 && clickTarget?.parentElement; depth += 1) {
-          clickTarget.click();
-          clickTarget = clickTarget.parentElement;
-          clickTarget.click();
-        }
-        return confirmLeaf !== undefined;
-      });
-
-      // The store is bound once the sheet closes and the site's own search box is on the page.
-      await waitForPageCondition(
-        page,
-        () => document.querySelector(SEARCH_BOX_SELECTOR) !== null,
-        15000,
-      );
-
-      if (!clickedSuggestionText && !checkIfConfirmClicked) {
-        throw new Error(
-          `Flipkart Minutes could not bind ${pincodeText}: no address suggestion and no Confirm control`,
-        );
-      }
-      return clickedSuggestionText;
+  if (!clickedSuggestionText || !checkIfConfirmClicked) {
+    throw new Error(`Flipkart Minutes could not confirm delivery address for ${pincodeText}`);
+  }
+  return clickedSuggestionText;
 };
 
 /** Flipkart serves images through a templated CDN URL; fill the placeholders in with real sizes. */
@@ -447,8 +454,8 @@ const searchProductList = async (
       totalProducts: productList.length,
       resolvedLocationLabel,
       storeDeliveryEtaInMinutes:
-        productList.find((product) => product.deliveryEtaInMinutes !== null)?.deliveryEtaInMinutes ??
-        null,
+        productList.find((product) => product.deliveryEtaInMinutes !== null)
+          ?.deliveryEtaInMinutes ?? null,
       storeLevelCharges: readStoreLevelCharges(rawProductList),
       failureReason: null,
       failureDetail: null,

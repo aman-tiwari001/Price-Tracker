@@ -17,10 +17,8 @@
  * old extractor would have produced blank cards even if its request had succeeded.
  */
 import CONSTANTS from '../config/constant';
-import {
-  readBrowserCookies,
-  withBrowserPage,
-} from '../services/headlessBrowserPool';
+import { Page } from 'puppeteer';
+import { readBrowserCookies, withBrowserPage } from '../services/headlessBrowserPool';
 import {
   buildBrowserBaseHeaderMap,
   fetchAsImpersonatedBrowser,
@@ -48,6 +46,19 @@ const SWIGGY_ORIGIN = 'https://www.swiggy.com';
 const SWIGGY_IMAGE_BASE_URL = 'https://media-assets.swiggy.com/swiggy/image/upload/';
 /** Sent by Swiggy's own web app; kept as a constant so a bump is a one-line change. */
 const SWIGGY_WEB_BUILD_VERSION = '2.377.0';
+const SWIGGY_PAGE_LOAD_TIMEOUT_MS = 30000;
+const SWIGGY_WAF_TOKEN_WAIT_TIMEOUT_MS = 20000;
+
+const waitForSwiggyWafToken = async (page: Page): Promise<Record<string, string>> => {
+  const deadline = Date.now() + SWIGGY_WAF_TOKEN_WAIT_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const { cookieByName } = await readBrowserCookies(page, `${SWIGGY_ORIGIN}/instamart`);
+    if (cookieByName['aws-waf-token']) return cookieByName;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  const { cookieByName } = await readBrowserCookies(page, `${SWIGGY_ORIGIN}/instamart`);
+  return cookieByName;
+};
 
 /**
  * Drives Swiggy's own "Share location" button.
@@ -69,8 +80,8 @@ const mintSession = async (
     },
     async (page) => {
       await page.goto(`${SWIGGY_ORIGIN}/instamart`, {
-        waitUntil: 'networkidle2',
-        timeout: 60000,
+        waitUntil: 'domcontentloaded',
+        timeout: SWIGGY_PAGE_LOAD_TIMEOUT_MS,
       });
 
       // Selector verified live on 2026-09-15. If Swiggy renames it, we still get a session — just
@@ -92,15 +103,13 @@ const mintSession = async (
       await new Promise((resolve) => setTimeout(resolve, 6000));
 
       // Landing on a search page makes Swiggy resolve the serving store and finish the cookie set.
-      await page
-        .goto(`${SWIGGY_ORIGIN}/instamart/search?query=milk`, {
-          waitUntil: 'networkidle2',
-          timeout: 60000,
-        })
-        .catch(() => undefined);
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await page.goto(`${SWIGGY_ORIGIN}/instamart/search?query=milk`, {
+        waitUntil: 'domcontentloaded',
+        timeout: SWIGGY_PAGE_LOAD_TIMEOUT_MS,
+      });
 
-      const { cookieHeader, cookieByName } = await readBrowserCookies(page, `${SWIGGY_ORIGIN}/instamart`);
+      const cookieByName = await waitForSwiggyWafToken(page);
+      const { cookieHeader } = await readBrowserCookies(page, `${SWIGGY_ORIGIN}/instamart`);
       if (!cookieByName['aws-waf-token']) {
         throw new Error('Swiggy session mint produced no aws-waf-token');
       }
@@ -159,7 +168,9 @@ const normalizeSwiggyItem = (rawItem: Record<string, any>): NormalizedProduct | 
     platformId: PLATFORM_ID,
     productName,
     brandName: cleanText(variation.brandName ?? rawItem.brand),
-    packSizeLabel: cleanText(variation.quantityDescription ?? variation.secondaryQuantityDescription),
+    packSizeLabel: cleanText(
+      variation.quantityDescription ?? variation.secondaryQuantityDescription,
+    ),
     categoryName: cleanText(variation.category ?? variation.superCategory),
     description: cleanText(variation.shortDescription),
     imageUrlList,

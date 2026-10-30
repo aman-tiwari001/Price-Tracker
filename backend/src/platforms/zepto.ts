@@ -64,7 +64,10 @@ const SEARCH_RESPONSE_WAIT_MS = 75000;
  * to a default store — so a picker change degrades location accuracy rather than breaking the
  * platform, and the resolved address is reported back so a wrong city is visible, not silent.
  */
-const applyDeliveryAddress = async (page: Page, location: SearchLocation): Promise<string | null> => {
+const applyDeliveryAddress = async (
+  page: Page,
+  location: SearchLocation,
+): Promise<string | null> => {
   // Zepto ignores the browser's geolocation — measured: it resolved its own default store while
   // Puppeteer reported different coordinates — so the text picker is the only way to place the
   // shopper. Prefer a real address; a bare pincode also matches Zepto's autocomplete.
@@ -96,11 +99,17 @@ const applyDeliveryAddress = async (page: Page, location: SearchLocation): Promi
     await new Promise((resolve) => setTimeout(resolve, 2500));
     return page.evaluate(
       () =>
-        document.querySelector('[data-testid="user-address"]')?.textContent?.replace(/\s+/g, ' ').trim() ??
-        null,
+        document
+          .querySelector('[data-testid="user-address"]')
+          ?.textContent?.replace(/\s+/g, ' ')
+          .trim() ?? null,
     );
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(
+      `Zepto address picker could not resolve ${addressText}: ${
+        error instanceof Error ? error.message : 'unknown picker error'
+      }`,
+    );
   }
 };
 
@@ -123,7 +132,8 @@ const normalizeZeptoItem = (rawItem: Record<string, any>): NormalizedProduct | n
   };
 
   const sellingPriceInRupees =
-    toRupees(productResponse.discountedSellingPrice) ?? toRupees(productVariant.discountedSellingPrice);
+    toRupees(productResponse.discountedSellingPrice) ??
+    toRupees(productVariant.discountedSellingPrice);
   const maximumRetailPriceInRupees = toRupees(productResponse.mrp) ?? toRupees(productVariant.mrp);
 
   return {
@@ -234,10 +244,10 @@ const searchProductList = async (
           });
         });
 
-        await page.goto(
-          `${ZEPTO_ORIGIN}/search?query=${encodeURIComponent(request.searchQuery)}`,
-          { waitUntil: 'domcontentloaded', timeout: 45000 },
-        );
+        await page.goto(`${ZEPTO_ORIGIN}/search?query=${encodeURIComponent(request.searchQuery)}`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 45000,
+        });
 
         const searchJson = await searchResponsePromise;
         // Read cookies so a future transport change can reuse this session; harmless today.
