@@ -28,6 +28,7 @@ let activePageCount = 0;
 
 const launchBrowser = (): Promise<Browser> =>
   puppeteer.launch({
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     headless: true,
     args: [
       '--no-sandbox',

@@ -12,8 +12,6 @@
  * *Transferable shape:* degrade to a smaller scope rather than to nothing — losing the shared cache
  * should cost cross-node sharing, not caching altogether.
  */
-import redis from '../config/redis';
-
 interface ProcessLocalEntry {
   serialisedValue: string;
   expiresAtEpochMs: number;
@@ -30,12 +28,6 @@ const evictExpiredProcessLocalEntries = (): void => {
 };
 
 export const readCachedValue = async (cacheKey: string): Promise<string | null> => {
-  try {
-    const redisValue = await redis.get(cacheKey);
-    if (redisValue !== null) return redisValue;
-  } catch {
-    // Redis unavailable — fall through to the process-local tier.
-  }
   const localEntry = processLocalEntryByKey.get(cacheKey);
   if (!localEntry) return null;
   if (localEntry.expiresAtEpochMs <= Date.now()) {
@@ -57,18 +49,8 @@ export const writeCachedValue = async (
     serialisedValue,
     expiresAtEpochMs: Date.now() + timeToLiveSeconds * 1000,
   });
-  try {
-    await redis.set(cacheKey, serialisedValue, 'EX', timeToLiveSeconds);
-  } catch {
-    // Already stored locally; a Redis outage must never fail a shopper's search.
-  }
 };
 
 export const deleteCachedValue = async (cacheKey: string): Promise<void> => {
   processLocalEntryByKey.delete(cacheKey);
-  try {
-    await redis.del(cacheKey);
-  } catch {
-    // An entry that cannot be deleted from Redis simply expires on its own TTL.
-  }
 };
